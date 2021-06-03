@@ -1,7 +1,7 @@
 import requests
 from flask import Flask, render_template, request
 from base64 import b64encode
-import time
+# import time
 
 app = Flask(__name__)
 
@@ -100,4 +100,4 @@ def get_recordings(access_token, meeting_id):
 # print(get_recordings(access_token, "99374862702"))
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
