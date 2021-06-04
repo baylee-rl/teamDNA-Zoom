@@ -66,7 +66,6 @@ def refresh_token(r_token):
     """
     Used to refresh a user's access token once it has expired
     """
-    time.sleep(30)
     print("hi i have been called")
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + r_token
@@ -136,7 +135,7 @@ if __name__ == "__main__":
     app.run(debug=True)
 
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token(r_token), trigger="interval", minutes=1)
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=r_token)
 refresh_scheduler.start()
 
 atexit.register(lambda: refresh_scheduler.shutdown())
