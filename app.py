@@ -113,7 +113,7 @@ def index():
     auth_code = request.args['code']
     print(auth_code)
     access_token, r_token = get_access_token(auth_code)
-
+    print(r_token)
     return render_template("index.html")
 
 refresh_scheduler = BackgroundScheduler()
