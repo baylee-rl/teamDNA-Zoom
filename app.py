@@ -40,7 +40,7 @@ def get_access_token(auth_code):
 
     headers = {"Authorization": authorization, "Content-Type": content_type}
 
-    redirect_uri = "https://rice.edu/"
+    redirect_uri = "https://teamdna-zoom.herokuapp.com/"
 
     url = (
         "https://zoom.us/oauth/token?code="
