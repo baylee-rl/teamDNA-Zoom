@@ -13,6 +13,8 @@ CLIENT_SEC = config["CLIENT_SECRET"]
 
 app = Flask(__name__)
 
+r_token = 0
+
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
