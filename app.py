@@ -116,7 +116,7 @@ def index():
     auth_code = request.args['code']
     print(auth_code)
     global access_token, r_token
-    access_token, r_token = get_access_token(auth_code)
+    global access_token, r_token = get_access_token(auth_code)
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
