@@ -111,7 +111,7 @@ refresh_scheduler.start()
 def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
-
+    print(auth_code)
     access_token, refresh_token = get_access_token(auth_code)
 
     return render_template("index.html")
