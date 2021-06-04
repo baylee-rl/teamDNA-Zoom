@@ -13,6 +13,8 @@ CLIENT_SEC = config["CLIENT_SECRET"]
 
 app = Flask(__name__)
 
+r_token = 0
+
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
@@ -64,6 +66,7 @@ def refresh_token(r_token):
     """
     Used to refresh a user's access token once it has expired
     """
+    time.sleep(30)
     print("hi i have been called")
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + r_token
