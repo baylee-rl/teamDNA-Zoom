@@ -135,7 +135,7 @@ if __name__ == "__main__":
     app.run(debug=True)
 
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=(r_token))
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=(r_token,))
 refresh_scheduler.start()
 
 atexit.register(lambda: refresh_scheduler.shutdown())
