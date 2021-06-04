@@ -68,7 +68,7 @@ def refresh_token(r_token):
     """
     print("hi i have been called")
 
-    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + r_token
+    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
