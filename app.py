@@ -55,18 +55,18 @@ def get_access_token(auth_code):
     data = response.json()
     print(data)
     access_token = data["access_token"]
-    refresh_token = data["refresh_token"]
+    r_token = data["refresh_token"]
 
-    return access_token, refresh_token
+    return access_token, r_token
 
 
-def refresh_token(refresh_token):
+def refresh_token(r_token):
     """
     Used to refresh a user's access token once it has expired
     """
     print("hi i have been called")
 
-    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + refresh_token
+    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + r_token
 
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
@@ -81,9 +81,9 @@ def refresh_token(refresh_token):
     data = response.json()
 
     access_token = data["access_token"]
-    refresh_token = data["refresh_token"]
+    r_token = data["refresh_token"]
 
-    return access_token, refresh_token
+    return access_token, r_token
 
 
 def get_recordings(access_token, meeting_id):
@@ -112,12 +112,12 @@ def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print(auth_code)
-    access_token, refresh_token = get_access_token(auth_code)
+    access_token, r_token = get_access_token(auth_code)
 
     return render_template("index.html")
 
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token(refresh_token), trigger="interval", minutes=1)
+refresh_scheduler.add_job(func=refresh_token(r_token), trigger="interval", minutes=1)
 refresh_scheduler.start()
 
 @app.route("/received", methods=["POST", "GET"])
