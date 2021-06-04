@@ -13,8 +13,6 @@ config = dotenv_values(".env")
 
 app = Flask(__name__)
 
-r_token = 0
-
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
@@ -115,8 +113,8 @@ def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print(auth_code)
+    global access_token, r_token
     access_token, r_token = get_access_token(auth_code)
-    print(r_token)
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
