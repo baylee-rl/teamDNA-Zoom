@@ -13,6 +13,7 @@ CLIENT_SEC = config["CLIENT_SECRET"]
 
 app = Flask(__name__)
 
+access_token = 0
 r_token = 0
 
 """
@@ -56,6 +57,8 @@ def get_access_token(auth_code):
     response = requests.post(url, headers=headers)
     data = response.json()
     print(data)
+    global access_token
+    global r_token
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
@@ -83,6 +86,8 @@ def refresh_token(r_token):
     print(response.text)
     data = response.json()
 
+    global access_token
+    global r_token
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
@@ -115,8 +120,9 @@ def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print(auth_code)
-    global access_token, r_token
-    global access_token, r_token = get_access_token(auth_code)
+    global access_token
+    global r_token
+    access_token, r_token = get_access_token(auth_code)
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
