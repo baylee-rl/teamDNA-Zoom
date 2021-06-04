@@ -8,9 +8,9 @@ app = Flask(__name__)
 
 @app.route("/", methods=["POST", "GET"])
 def index():
-    # 
-    auth_code = None
-
+    # app will fail if user has not authenticated OAuth extension
+    auth_code = request.args['code']
+    print(auth_code)
     return render_template("index.html")
 
 
