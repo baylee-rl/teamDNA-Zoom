@@ -116,10 +116,6 @@ def index():
     print(r_token)
     return render_template("index.html")
 
-refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token(r_token), trigger="interval", minutes=1)
-refresh_scheduler.start()
-
 @app.route("/received", methods=["POST", "GET"])
 def receive():
     if request.method == "POST":
@@ -135,5 +131,9 @@ def receive():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+refresh_scheduler = BackgroundScheduler()
+refresh_scheduler.add_job(func=refresh_token(r_token), trigger="interval", minutes=1)
+refresh_scheduler.start()
 
 atexit.register(lambda: refresh_scheduler.shutdown())
