@@ -40,7 +40,7 @@ def get_access_token(auth_code):
 
     headers = {"Authorization": authorization, "Content-Type": content_type}
 
-    redirect_uri = "https://teamdna-zoom.herokuapp.com/"
+    redirect_uri = "https://rice.edu/"
 
     url = (
         "https://zoom.us/oauth/token?code="
@@ -51,6 +51,7 @@ def get_access_token(auth_code):
 
     response = requests.post(url, headers=headers)
     data = response.json()
+    print(data)
     access_token = data["access_token"]
     refresh_token = data["refresh_token"]
 
@@ -103,12 +104,9 @@ def get_recordings(access_token, meeting_id):
     return data
 
 
-refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
-refresh_scheduler.start()
-
 @app.route("/", methods=["POST", "GET"])
 def index():
+    print("DEBUGGING test")
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print(auth_code)
@@ -116,6 +114,9 @@ def index():
 
     return render_template("index.html")
 
+refresh_scheduler = BackgroundScheduler()
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+refresh_scheduler.start()
 
 @app.route("/received", methods=["POST", "GET"])
 def receive():
