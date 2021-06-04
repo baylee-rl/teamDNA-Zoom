@@ -60,7 +60,7 @@ def get_access_token(auth_code):
     return access_token, refresh_token
 
 
-def refresh_token():
+def refresh_token(refresh_token):
     """
     Used to refresh a user's access token once it has expired
     """
@@ -117,7 +117,7 @@ def index():
     return render_template("index.html")
 
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+refresh_scheduler.add_job(func=refresh_token(refresh_token), trigger="interval", minutes=1)
 refresh_scheduler.start()
 
 @app.route("/received", methods=["POST", "GET"])
