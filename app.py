@@ -1,56 +1,46 @@
+from dotenv import dotenv_values
 import requests
+import atexit
 from flask import Flask, render_template, request
 from base64 import b64encode
-# import time
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+
+config = dotenv_values(".env")
+
+***REMOVED***
+***REMOVED***
 
 app = Flask(__name__)
 
-
-@app.route("/", methods=["POST", "GET"])
-def index():
-    # app will fail if user has not authenticated OAuth extension
-    auth_code = request.args['code']
-    print(auth_code)
-    return render_template("index.html")
-
-
-@app.route("/received", methods=["POST", "GET"])
-def receive():
-    if request.method == "POST":
-        result = request.form
-        meeting_id = result["meetids"]
-        # print(meeting_id)
-        return render_template("index.html")
-
-
-# Meeting ID: 993 7486 2702 rGBSWhHgYX_NSu_bVQwQLeTf1pCb4fldA
-
-# meeting_id = "993 7486 2702"
-
-# baylee's auth code rGBSWhHgYX_NSu_bVQwQLeTf1pCb4fldA
-
-# url = 'https://zoom.us/oauth/token'
-# print(url)
-
+"""
+Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
+"""
+# FUNCTIONS #
 
 def get_access_token(auth_code):
     """
-    retrieves access token based on someones auth code
+    Retrieves an Access Token and Refresh Token given an Authorization Code
+    Access Tokens expire after 60 minutes
+
+    Inputs:
+        auth_code -- string representing authorization code after user has authorized extension
+
+    Outputs:
+        access_token -- string representing user's access_token for API calls
+        refresh_token -- string representing user's refresh_token for refreshing access token
     """
-    clientid = "A9Mmyi4xQTaVyh1FwflKVQ"
-    clientsec = "4YjioAh3ArPNWGfQRXQ5FChuxznL77Hx"
 
-    str_code = clientid + ":" + clientsec
+    # encodes client ID and client secret into base64 for Authorization header
+    str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
+
     authorization = "Basic " + str(b64encode(ascii_code))[2:-1]
-
-    print(authorization)
-
     content_type = "application/x-www-form-urlencoded"
 
     headers = {"Authorization": authorization, "Content-Type": content_type}
 
-    redirect_uri = "https://rice.edu/"
+    redirect_uri = "https://teamdna-zoom.herokuapp.com/"
 
     url = (
         "https://zoom.us/oauth/token?code="
@@ -60,20 +50,37 @@ def get_access_token(auth_code):
     )
 
     response = requests.post(url, headers=headers)
-    print(response.text)
     data = response.json()
     access_token = data["access_token"]
-    # print(access_token)
+    refresh_token = data["refresh_token"]
 
-    return access_token
+    return access_token, refresh_token
 
 
 def refresh_token():
     """
-    refresh access token after 60min
-    make post request to https://zoom.us/oauth/token
-
+    Used to refresh a user's access token once it has expired
     """
+    print("hi i have been called")
+
+    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + refresh_token
+
+    str_code = CLIENT_ID + ":" + CLIENT_SEC
+    ascii_code = str_code.encode("ascii")
+
+    authorization = "Basic " + str(b64encode(ascii_code))[2:-1]
+    content_type = "application/x-www-form-urlencoded"
+
+    headers = {"Authorization" : authorization, "Content-Type" : content_type}
+
+    response = requests.post(url, headers=headers)
+    print(response.text)
+    data = response.json()
+
+    access_token = data["access_token"]
+    refresh_token = data["refresh_token"]
+
+    return access_token, refresh_token
 
 
 def get_recordings(access_token, meeting_id):
@@ -96,8 +103,34 @@ def get_recordings(access_token, meeting_id):
     return data
 
 
+refresh_scheduler = BackgroundScheduler()
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+refresh_scheduler.start()
+
+@app.route("/", methods=["POST", "GET"])
+def index():
+    # app will fail if user has not authenticated OAuth extension
+    auth_code = request.args['code']
+
+    access_token, refresh_token = get_access_token(auth_code)
+
+    return render_template("index.html")
+
+
+@app.route("/received", methods=["POST", "GET"])
+def receive():
+    if request.method == "POST":
+        result = request.form
+        meeting_id = result["meetids"]
+        # print(meeting_id)
+        return render_template("index.html")
+
+
+
 # access_token = get_access_token(auth_code)
 # print(get_recordings(access_token, "99374862702"))
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+atexit.register(lambda: refresh_scheduler.shutdown())
