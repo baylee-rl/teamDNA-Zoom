@@ -32,6 +32,8 @@ def get_access_token(auth_code):
     """
 
     # encodes client ID and client secret into base64 for Authorization header
+    print("CLIENT ID: " + CLIENT_ID)
+    print("CLIENT SEC: " + CLIENT_SEC)
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
 
