@@ -13,8 +13,8 @@ config = dotenv_values(".env")
 
 app = Flask(__name__)
 
-access_token = 0
-r_token = 0
+access_token = ""
+r_token = ""
 
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
@@ -33,6 +33,8 @@ def get_access_token(auth_code):
         access_token -- string representing user's access_token for API calls
         refresh_token -- string representing user's refresh_token for refreshing access token
     """
+    global access_token
+    global r_token
 
     # encodes client ID and client secret into base64 for Authorization header
     print("CLIENT ID: " + CLIENT_ID)
@@ -57,8 +59,6 @@ def get_access_token(auth_code):
     response = requests.post(url, headers=headers)
     data = response.json()
     print(data)
-    global access_token
-    global r_token
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
@@ -69,8 +69,10 @@ def refresh_token():
     """
     Used to refresh a user's access token once it has expired
     """
+    global access_token
+    global r_token
+
     print("hi i have been called")
-    print(r_token)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
@@ -86,8 +88,6 @@ def refresh_token():
     print(response.text)
     data = response.json()
 
-    global access_token
-    global r_token
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
