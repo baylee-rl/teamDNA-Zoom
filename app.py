@@ -13,9 +13,6 @@ CLIENT_SEC = config["CLIENT_SECRET"]
 
 app = Flask(__name__)
 
-access_token = ""
-r_token = ""
-
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
@@ -33,8 +30,6 @@ def get_access_token(auth_code):
         access_token -- string representing user's access_token for API calls
         refresh_token -- string representing user's refresh_token for refreshing access token
     """
-    global access_token
-    global r_token
 
     # encodes client ID and client secret into base64 for Authorization header
     print("CLIENT ID: " + CLIENT_ID)
@@ -67,12 +62,10 @@ def get_access_token(auth_code):
     return access_token, r_token
 
 
-def refresh_token():
+def refresh_token(r_token):
     """
     Used to refresh a user's access token once it has expired
     """
-    global access_token
-    global r_token
 
     print("hi i have been called")
     print("r_token: " + r_token)
@@ -92,10 +85,10 @@ def refresh_token():
     print(response.text)
     data = response.json()
 
-    access_token = data["access_token"]
-    r_token = data["refresh_token"]
+    new_access_token = data["access_token"]
+    new_r_token = data["refresh_token"]
 
-    return access_token, r_token
+    return new_access_token, new_r_token
 
 
 def get_recordings(meeting_id):
@@ -124,10 +117,13 @@ def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print(auth_code)
-    global access_token
-    global r_token
     access_token, r_token = get_access_token(auth_code)
     print("r_token: " + r_token)
+
+    refresh_scheduler = BackgroundScheduler()
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token])
+    refresh_scheduler.start()
+
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
@@ -145,9 +141,5 @@ def receive():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
-refresh_scheduler.start()
 
 atexit.register(lambda: refresh_scheduler.shutdown())
