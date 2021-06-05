@@ -65,7 +65,7 @@ def get_access_token(auth_code):
     return access_token, r_token
 
 
-def refresh_token(r_token):
+def refresh_token():
     """
     Used to refresh a user's access token once it has expired
     """
@@ -94,7 +94,7 @@ def refresh_token(r_token):
     return access_token, r_token
 
 
-def get_recordings(access_token, meeting_id):
+def get_recordings(meeting_id):
     """
     returns a list of meeting recordings given a meeting ID
     """
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     app.run(debug=True)
 
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=(r_token,))
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
 refresh_scheduler.start()
 
 atexit.register(lambda: refresh_scheduler.shutdown())
