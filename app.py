@@ -104,7 +104,6 @@ def get_recordings(meeting_id):
 
 @app.route("/", methods=["POST", "GET"])
 def index():
-
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
 
@@ -113,7 +112,6 @@ def index():
     refresh_scheduler = BackgroundScheduler()
     refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59, args=[r_token])
     refresh_scheduler.start()
-
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
