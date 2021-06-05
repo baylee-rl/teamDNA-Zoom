@@ -32,8 +32,7 @@ def get_access_token(auth_code):
     """
 
     # encodes client ID and client secret into base64 for Authorization header
-    print("CLIENT ID: " + CLIENT_ID)
-    print("CLIENT SEC: " + CLIENT_SEC)
+
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
 
@@ -53,11 +52,9 @@ def get_access_token(auth_code):
 
     response = requests.post(url, headers=headers)
     data = response.json()
-    print(data)
+    
     access_token = data["access_token"]
     r_token = data["refresh_token"]
-
-    print("r_token: " + r_token)
 
     return access_token, r_token
 
@@ -67,11 +64,7 @@ def refresh_token(r_token):
     Used to refresh a user's access token once it has expired
     """
 
-    print("hi i have been called")
-    print("r_token: " + r_token)
-
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
-    print(url)
 
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
@@ -82,7 +75,6 @@ def refresh_token(r_token):
     headers = {"Authorization" : authorization, "Content-Type" : content_type}
 
     response = requests.post(url, headers=headers)
-    print(response.text)
     data = response.json()
 
     new_access_token = data["access_token"]
@@ -101,7 +93,6 @@ def get_recordings(meeting_id):
 
     url2 = "https://api.zoom.us/v2/meetings/" + meeting_id + "/recordings"
     response2 = requests.get(url2, headers=headers2)
-    print(response2)
     data = response2.json()
     # print(data)
 
@@ -113,15 +104,14 @@ def get_recordings(meeting_id):
 
 @app.route("/", methods=["POST", "GET"])
 def index():
-    print("DEBUGGING test")
+
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
-    print(auth_code)
+
     access_token, r_token = get_access_token(auth_code)
-    print("r_token: " + r_token)
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token])
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59, args=[r_token])
     refresh_scheduler.start()
 
     return render_template("index.html")
@@ -134,10 +124,6 @@ def receive():
         # print(meeting_id)
         return render_template("index.html")
 
-
-
-# access_token = get_access_token(auth_code)
-# print(get_recordings(access_token, "99374862702"))
 
 if __name__ == "__main__":
     app.run(debug=True)
