@@ -62,6 +62,8 @@ def get_access_token(auth_code):
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
+    print("r_token: " + r_token)
+
     return access_token, r_token
 
 
@@ -73,6 +75,7 @@ def refresh_token():
     global r_token
 
     print("hi i have been called")
+    print("r_token: " + r_token)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
     print(url)
@@ -124,6 +127,7 @@ def index():
     global access_token
     global r_token
     access_token, r_token = get_access_token(auth_code)
+    print("r_token: " + r_token)
     return render_template("index.html")
 
 @app.route("/received", methods=["POST", "GET"])
