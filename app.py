@@ -66,6 +66,7 @@ def refresh_token(r_token):
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
+    print(r_token_lst)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
