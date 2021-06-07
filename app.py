@@ -58,8 +58,8 @@ def get_access_token(auth_code):
 
     return access_token, r_token
 
-access_token_lst = []
-r_token_lst = []
+access_token_lst = [None]
+r_token_lst = [None]
 
 def refresh_token(r_token):
     """
