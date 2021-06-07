@@ -58,6 +58,8 @@ def get_access_token(auth_code):
 
     return access_token, r_token
 
+access_token_lst = []
+r_token_lst = []
 
 def refresh_token(r_token):
     """
@@ -83,6 +85,9 @@ def refresh_token(r_token):
 
     print("New Access: " + new_access_token)
 
+    access_token_lst[0] = new_access_token
+    r_token_lst[0] = new_r_token
+
     return new_access_token, new_r_token
 
 
@@ -90,7 +95,7 @@ def get_recordings(meeting_id):
     """
     returns a list of meeting recordings given a meeting ID
     """
-    authorization2 = "Bearer " + access_token
+    authorization2 = "Bearer " + access_token_lst[0]
 
     headers2 = {"Authorization": authorization2}
 
@@ -116,7 +121,7 @@ def index():
     print("Refresh token: " + r_token)
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token])
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token_lst[0]])
     refresh_scheduler.start()
     return render_template("index.html")
 
