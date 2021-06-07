@@ -124,8 +124,8 @@ def index():
     access_token, r_token = get_access_token(auth_code)
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    print("Access token list: " + access_token_lst)
-    print("Refresh token list: " + r_token_lst)
+    print("Access token list: " + access_token_lst[0])
+    print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
     refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
