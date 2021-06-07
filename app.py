@@ -56,19 +56,22 @@ def get_access_token(auth_code):
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
+    access_token_lst[0] = access_token
+    r_token_lst[0] = r_token
+
     return access_token, r_token
 
 access_token_lst = [None]
 r_token_lst = [None]
 
-def refresh_token(r_token):
+def refresh_token():
     """
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
     print(r_token_lst)
 
-    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
+    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token_lst[0])
 
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
@@ -80,6 +83,7 @@ def refresh_token(r_token):
 
     response = requests.post(url, headers=headers)
     data = response.json()
+    print('Response: ' + response.text)
 
     new_access_token = data["access_token"]
     new_r_token = data["refresh_token"]
@@ -118,13 +122,13 @@ def index():
     print("Authorization code:" + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
-    access_token_lst[0] = access_token
-    r_token_lst[0] = r_token
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
+    print("Access token list: " + access_token_lst)
+    print("Refresh token list: " + r_token_lst)
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token_lst[0]])
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
     refresh_scheduler.start()
     return render_template("index.html")
 
@@ -135,7 +139,7 @@ def receive():
         result = request.form
         meeting_id = result["meetids"]
         print("Meeting ID: " + meeting_id)
-        print("Recordings: "+ get_recordings(meeting_id))
+        # print("Recordings: "+ get_recordings(meeting_id))
         return render_template("index.html")
 
 
