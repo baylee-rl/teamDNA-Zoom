@@ -63,6 +63,7 @@ def refresh_token(r_token):
     """
     Used to refresh a user's access token once it has expired
     """
+    print("Refreshing...")
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
@@ -80,6 +81,8 @@ def refresh_token(r_token):
     new_access_token = data["access_token"]
     new_r_token = data["refresh_token"]
 
+    print("New Access: " + new_access_token)
+
     return new_access_token, new_r_token
 
 
@@ -94,7 +97,7 @@ def get_recordings(meeting_id):
     url2 = "https://api.zoom.us/v2/meetings/" + meeting_id + "/recordings"
     response2 = requests.get(url2, headers=headers2)
     data = response2.json()
-    # print(data)
+    print("Recordings: " + data)
 
     # list of dictionaries
     # recordings = data['recording_files']
@@ -106,8 +109,11 @@ def get_recordings(meeting_id):
 def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
+    print("Authorization code:" + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
+    print("Access token: " + access_token)
+    print("Refresh token: " + refresh_token)
 
     refresh_scheduler = BackgroundScheduler()
     refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59, args=[r_token])
@@ -125,5 +131,3 @@ def receive():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-atexit.register(lambda: refresh_scheduler.shutdown())
