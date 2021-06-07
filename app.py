@@ -134,7 +134,8 @@ def receive():
     if request.method == "POST":
         result = request.form
         meeting_id = result["meetids"]
-        # print(meeting_id)
+        print("Meeting ID: " + meeting_id)
+        print("Recordings: "+ get_recordings(meeting_id))
         return render_template("index.html")
 
 
