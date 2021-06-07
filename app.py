@@ -117,6 +117,8 @@ def index():
     print("Authorization code:" + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
+    access_token_lst[0] = access_token
+    r_token_lst[0] = r_token
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
 
