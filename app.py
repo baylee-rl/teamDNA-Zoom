@@ -116,9 +116,10 @@ def index():
     print("Refresh token: " + r_token)
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59, args=[r_token])
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1, args=[r_token])
     refresh_scheduler.start()
     return render_template("index.html")
+
 
 @app.route("/received", methods=["POST", "GET"])
 def receive():
