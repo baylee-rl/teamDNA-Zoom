@@ -116,6 +116,15 @@ def get_recordings(meeting_id):
     print("Meetings:")
     print(meetings)
 
+    meet_instances = {meeting_id : []}
+    for meeting in meetings:
+        if meeting['id'] == meeting_id:
+            print("UUID: " + meeting['uuid'])
+            meet_instances[meeting_id].append(meeting['uuid'])
+            print("Successfully added meeting instance")
+    
+    print(meet_instances)
+
     return data
 
 
