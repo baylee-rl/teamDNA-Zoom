@@ -106,13 +106,15 @@ def get_recordings(meeting_id):
 
     headers2 = {"Authorization": authorization2}
 
-    url2 = "https://api.zoom.us/v2/meetings/" + meeting_id + "/recordings"
+    # if user has too many meetings, not all will be displayed -- see documentation
+    url2 = "https://api.zoom.us/v2/users/me/recordings"
     response2 = requests.get(url2, headers=headers2)
     data = response2.json()
-    # print("Recordings: " + data)
-
+    meetings = data["meetings"]
     # list of dictionaries
     # recordings = data['recording_files']
+    print("Meetings:")
+    print(meetings)
 
     return data
 
