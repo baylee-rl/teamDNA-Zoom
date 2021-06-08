@@ -118,10 +118,8 @@ def get_recordings(meeting_id):
 
     meet_instances = {meeting_id : []}
     for meeting in meetings:
-        print(meeting)
-        print(meeting['id'])
-        print(meeting_id)
-        if meeting['id'] == meeting_id:
+        # meeting id is int from zoom
+        if str(meeting['id']) == meeting_id:
             print("UUID: " + meeting['uuid'])
             meet_instances[meeting_id].append(meeting['uuid'])
             print("Successfully added meeting instance")
