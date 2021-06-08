@@ -132,7 +132,7 @@ def index():
     # print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59)
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
     refresh_scheduler.start()
     return render_template("index.html")
 
