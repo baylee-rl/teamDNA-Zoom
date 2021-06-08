@@ -61,6 +61,7 @@ def get_access_token(auth_code):
 
     return access_token, r_token
 
+# act as global variables
 access_token_lst = [None]
 r_token_lst = [None]
 
@@ -119,13 +120,13 @@ def get_recordings(meeting_id):
 def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
-    print("Authorization code:" + auth_code)
+    print("Authorization code: " + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    print("Access token list: " + access_token_lst[0])
-    print("Refresh token list: " + r_token_lst[0])
+    # print("Access token list: " + access_token_lst[0])
+    # print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
     refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
