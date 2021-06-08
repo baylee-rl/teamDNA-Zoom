@@ -1,8 +1,7 @@
 from dotenv import dotenv_values
 import requests
 import atexit
-from flask import Flask, render_template, request
-from flask_session import Session
+from flask import Flask, render_template, request, session
 from base64 import b64encode
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -13,9 +12,9 @@ CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
 
 app = Flask(__name__)
-SESSION_TYPE = 'filesystem'
-app.config.from_object(__name__)
-Session(app)
+
+# change this later
+app.secret_key = 'EXAMPLE_KEY'
 
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
