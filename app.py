@@ -110,6 +110,7 @@ def get_recordings(meeting_id_lst):
     url2 = "https://api.zoom.us/v2/users/me/recordings"
     response2 = requests.get(url2, headers=headers2)
     data = response2.json()
+    print(data)
     meetings = data["meetings"]
     # list of dictionaries
     # recordings = data['recording_files']
