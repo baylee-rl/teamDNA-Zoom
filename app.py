@@ -147,7 +147,7 @@ def get_recordings(meeting_id_lst):
     return data
 
 
-@app.route("/", methods=["POST", "GET"])
+@app.route("/", methods=["GET"])
 def index():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
@@ -162,13 +162,10 @@ def index():
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
-    refresh_scheduler.start()
     return render_template("index.html")
 
 
-@app.route("/received", methods=["POST"])
+@app.route("/", methods=["POST"])
 def receive():
     if request.method == "POST":
         result = request.form
@@ -180,6 +177,11 @@ def receive():
         get_recordings(meeting_id_lst)
         return render_template("index.html")
 
+"""
+refresh_scheduler = BackgroundScheduler()
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+refresh_scheduler.start()
+"""
 
 if __name__ == "__main__":
     app.run(debug=True)
