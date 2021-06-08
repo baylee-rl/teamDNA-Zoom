@@ -95,6 +95,9 @@ def refresh_token():
     access_token_lst[0] = new_access_token
     r_token_lst[0] = new_r_token
 
+    print("New Access Token List:")
+    print(access_token_lst)
+
     return new_access_token, new_r_token
 
 
