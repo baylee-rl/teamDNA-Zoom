@@ -177,11 +177,11 @@ def receive():
         get_recordings(meeting_id_lst)
         return render_template("index.html")
 
-"""
+
 refresh_scheduler = BackgroundScheduler()
-refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+refresh_scheduler.add_job(func=refresh_token, trigger="interval", seconds=15)
 refresh_scheduler.start()
-"""
+
 
 if __name__ == "__main__":
     app.run(debug=True)
