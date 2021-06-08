@@ -16,6 +16,11 @@ app = Flask(__name__)
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
+
+# act as global variables
+access_token_lst = [None]
+r_token_lst = [None]
+
 # FUNCTIONS #
 
 def get_access_token(auth_code):
@@ -61,16 +66,13 @@ def get_access_token(auth_code):
 
     return access_token, r_token
 
-# act as global variables
-access_token_lst = [None]
-r_token_lst = [None]
 
 def refresh_token():
     """
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
-    # print(r_token_lst)
+    print(r_token_lst)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token_lst[0])
 
@@ -89,7 +91,7 @@ def refresh_token():
     new_access_token = data["access_token"]
     new_r_token = data["refresh_token"]
 
-    # print("New Access: " + new_access_token)
+    print("New Access: " + new_access_token)
 
     access_token_lst[0] = new_access_token
     r_token_lst[0] = new_r_token
@@ -145,15 +147,13 @@ def index():
     print("Authorization code: " + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
-    access_token_lst[0] = access_token
-    r_token_lst[0] = r_token
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    # print("Access token list: " + access_token_lst[0])
-    # print("Refresh token list: " + r_token_lst[0])
+    print("Access token list: " + access_token_lst[0])
+    print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59)
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
     refresh_scheduler.start()
     return render_template("index.html")
 
