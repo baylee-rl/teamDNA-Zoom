@@ -118,6 +118,7 @@ def get_recordings(meeting_id):
 
     meet_instances = {meeting_id : []}
     for meeting in meetings:
+        print(meeting)
         if meeting['id'] == meeting_id:
             print("UUID: " + meeting['uuid'])
             meet_instances[meeting_id].append(meeting['uuid'])
@@ -155,7 +156,7 @@ def receive():
         meeting_id = result["meetids"]
         print("Meeting ID: " + meeting_id)
         print("Recordings:")
-        print(get_recordings(meeting_id))
+        get_recordings(meeting_id)
         return render_template("index.html")
 
 
