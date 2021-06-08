@@ -108,7 +108,7 @@ def get_recordings(meeting_id):
     url2 = "https://api.zoom.us/v2/meetings/" + meeting_id + "/recordings"
     response2 = requests.get(url2, headers=headers2)
     data = response2.json()
-    print("Recordings: " + data)
+    # print("Recordings: " + data)
 
     # list of dictionaries
     # recordings = data['recording_files']
@@ -129,7 +129,7 @@ def index():
     # print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
+    refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=59)
     refresh_scheduler.start()
     return render_template("index.html")
 
@@ -140,8 +140,10 @@ def receive():
         result = request.form
         meeting_id = result["meetids"]
         print("Meeting ID: " + meeting_id)
-        # print("Recordings: "+ get_recordings(meeting_id))
+        print("Recordings:")
+        print(get_recordings(meeting_id))
         return render_template("index.html")
+    return
 
 
 if __name__ == "__main__":
