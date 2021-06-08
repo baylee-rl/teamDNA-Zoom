@@ -2,6 +2,7 @@ from dotenv import dotenv_values
 import requests
 import atexit
 from flask import Flask, render_template, request
+from flask_session import Session
 from base64 import b64encode
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -12,14 +13,17 @@ config = dotenv_values(".env")
 ***REMOVED***
 
 app = Flask(__name__)
+SESSION_TYPE = 'filesystem'
+app.config.from_object(__name__)
+Session(app)
 
 """
 Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
 """
 
 # act as global variables
-access_token_lst = [None]
-r_token_lst = [None]
+# access_token_lst = [None]
+# r_token_lst = [None]
 
 # FUNCTIONS #
 
@@ -61,8 +65,8 @@ def get_access_token(auth_code):
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
-    access_token_lst[0] = access_token
-    r_token_lst[0] = r_token
+    # access_token_lst[0] = access_token
+    # r_token_lst[0] = r_token
 
     return access_token, r_token
 
@@ -72,9 +76,10 @@ def refresh_token():
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
-    print(r_token_lst)
+    # print(r_token_lst)
+    r_token = session.get('r_token')
 
-    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token_lst[0])
+    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
     str_code = CLIENT_ID + ":" + CLIENT_SEC
     ascii_code = str_code.encode("ascii")
@@ -93,8 +98,11 @@ def refresh_token():
 
     print("New Access: " + new_access_token)
 
-    access_token_lst[0] = new_access_token
-    r_token_lst[0] = new_r_token
+    # access_token_lst[0] = new_access_token
+    # r_token_lst[0] = new_r_token
+
+    session['a_token'] = new_access_token
+    session['r_token'] = new_r_token
 
     return new_access_token, new_r_token
 
@@ -103,8 +111,8 @@ def get_recordings(meeting_id_lst):
     """
     returns a list of meeting recordings given a meeting ID
     """
-    print("Using access token: " + access_token_lst[0])
-    authorization2 = "Bearer " + access_token_lst[0]
+    print("Using access token: " + session['a_token'])
+    authorization2 = "Bearer " + session['a_token']
 
     headers2 = {"Authorization": authorization2}
 
@@ -149,8 +157,11 @@ def index():
     access_token, r_token = get_access_token(auth_code)
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    print("Access token list: " + access_token_lst[0])
-    print("Refresh token list: " + r_token_lst[0])
+    # print("Access token list: " + access_token_lst[0])
+    # print("Refresh token list: " + r_token_lst[0])
+
+    session['a_token'] = access_token
+    session['r_token'] = r_token
 
     refresh_scheduler = BackgroundScheduler()
     refresh_scheduler.add_job(func=refresh_token, trigger="interval", minutes=1)
@@ -158,7 +169,7 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/received", methods=["POST", "GET"])
+@app.route("/received", methods=["POST"])
 def receive():
     if request.method == "POST":
         result = request.form
