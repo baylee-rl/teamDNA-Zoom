@@ -70,7 +70,8 @@ def refresh_token():
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
-    # print(r_token_lst)
+    print("Access Token List:")
+    print(access_token_lst)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token_lst[0])
 
@@ -128,7 +129,7 @@ def index():
     r_token_lst[0] = r_token
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    # print("Access token list: " + access_token_lst[0])
+    print("Access token list: " + access_token_lst[0])
     # print("Refresh token list: " + r_token_lst[0])
 
     refresh_scheduler = BackgroundScheduler()
@@ -143,6 +144,8 @@ def receive():
         result = request.form
         meeting_id = result["meetids"]
         print("Meeting ID: " + meeting_id)
+        print("Access:")
+        print(access_token_lst)
         print("Recordings:")
         print(get_recordings(meeting_id))
         return render_template("index.html")
