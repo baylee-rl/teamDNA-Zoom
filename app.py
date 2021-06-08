@@ -70,7 +70,7 @@ def refresh_token():
     Used to refresh a user's access token once it has expired
     """
     print("Refreshing...")
-    print(r_token_lst)
+    # print(r_token_lst)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token_lst[0])
 
@@ -84,12 +84,12 @@ def refresh_token():
 
     response = requests.post(url, headers=headers)
     data = response.json()
-    print('Response: ' + response.text)
+    # print('Response: ' + response.text)
 
     new_access_token = data["access_token"]
     new_r_token = data["refresh_token"]
 
-    print("New Access: " + new_access_token)
+    # print("New Access: " + new_access_token)
 
     access_token_lst[0] = new_access_token
     r_token_lst[0] = new_r_token
@@ -124,6 +124,8 @@ def index():
     print("Authorization code: " + auth_code)
 
     access_token, r_token = get_access_token(auth_code)
+    access_token_lst[0] = access_token
+    r_token_lst[0] = r_token
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
     # print("Access token list: " + access_token_lst[0])
