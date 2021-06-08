@@ -101,6 +101,7 @@ def get_recordings(meeting_id):
     """
     returns a list of meeting recordings given a meeting ID
     """
+    print("Using access token: " + access_token_lst[0])
     authorization2 = "Bearer " + access_token_lst[0]
 
     headers2 = {"Authorization": authorization2}
@@ -143,7 +144,6 @@ def receive():
         print("Recordings:")
         print(get_recordings(meeting_id))
         return render_template("index.html")
-    return
 
 
 if __name__ == "__main__":
