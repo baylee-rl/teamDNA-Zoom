@@ -117,12 +117,12 @@ def get_recordings(meeting_id_lst):
     print(meetings)
 
     meetings_dict = {}
-    for meeting in meetings:
-        for meeting_id in meeting_id_lst:
-            meetings_dict[meeting_id] = {}
+    for meeting_id in meeting_id_lst:
+        meetings_dict[meeting_id] = {}
+        for meeting in meetings:
             # meeting id is int from zoom
             if str(meeting['id']) == meeting_id:
-                uuid = meeting['id']
+                uuid = meeting['uuid']
                 meetings_dict[meeting_id][uuid] = []
                 for file in meeting['recording_files']:
                     if file["file_type"] == "TRANSCRIPT":
