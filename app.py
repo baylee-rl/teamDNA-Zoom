@@ -97,7 +97,7 @@ def refresh_token():
     return new_access_token, new_r_token
 
 
-def get_recordings(meeting_id):
+def get_recordings(meeting_id_lst):
     """
     returns a list of meeting recordings given a meeting ID
     """
@@ -116,15 +116,23 @@ def get_recordings(meeting_id):
     print("Meetings:")
     print(meetings)
 
-    meet_instances = {meeting_id : []}
+    meetings_dict = {}
     for meeting in meetings:
-        # meeting id is int from zoom
-        if str(meeting['id']) == meeting_id:
-            print("UUID: " + meeting['uuid'])
-            meet_instances[meeting_id].append(meeting['uuid'])
-            print("Successfully added meeting instance")
+        for meeting_id in meeting_id_lst:
+            meetings_dict[meeting_id] = {}
+            # meeting id is int from zoom
+            if str(meeting['id']) == meeting_id:
+                uuid = meeting['id']
+                meetings_dict[meeting_id][uuid] = []
+                for file in meeting['recording_files']:
+                    if file["file_type"] == "TRANSCRIPT":
+                        print("Transcript found")
+                        download_url = file["download_url"]
+                        meetings_dict[meeting_id][uuid].append(download_url)
+                print("UUID: " + meeting['uuid'])
+                print("Successfully added meeting instance")
     
-    print(meet_instances)
+    print(meetings_dict)
 
     return data
 
@@ -153,10 +161,12 @@ def index():
 def receive():
     if request.method == "POST":
         result = request.form
-        meeting_id = result["meetids"]
-        print("Meeting ID: " + meeting_id)
+        meeting_ids = result["meetids"]
+        meeting_id_lst = meeting_ids.split(", ")
+        print("Meeting IDs: ")
+        print(meeting_id_lst)
         print("Recordings:")
-        get_recordings(meeting_id)
+        get_recordings(meeting_id_lst)
         return render_template("index.html")
 
 
