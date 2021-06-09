@@ -7,7 +7,5 @@ MarkupSafe==1.1.1
 Werkzeug==1.0.1
 requests==2.18.4
 python-dotenv==0.17.1
-APScheduler==3.7.0 
 pytz==2021.1 
 tzlocal==2.1
-Flask-Session==0.3.2
