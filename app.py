@@ -1,15 +1,18 @@
 from dotenv import dotenv_values
 import requests
-import atexit
+# import atexit
 from flask import Flask, render_template, request, session
+# from flask_apscheduler import APScheduler
 from base64 import b64encode
-import time
-from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import date, timedelta
+import urllib.request
+# from apscheduler.schedulers.background import BackgroundScheduler
 
 config = dotenv_values(".env")
 
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
+REDIRECT = "http://b1e32a6698d5.ngrok.io"
 
 app = Flask(__name__)
 
@@ -49,7 +52,7 @@ def get_access_token(auth_code):
 
     headers = {"Authorization": authorization, "Content-Type": content_type}
 
-    redirect_uri = "https://teamdna-zoom.herokuapp.com/"
+    redirect_uri = REDIRECT
 
     url = (
         "https://zoom.us/oauth/token?code="
@@ -69,41 +72,6 @@ def get_access_token(auth_code):
 
     return access_token, r_token
 
-def refresh_token():
-    """
-    Used to refresh a user's access token once it has expired
-    """
-    print("Refreshing...")
-    # print(r_token_lst)
-    r_token = session.get('r_token')
-
-    url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
-
-    str_code = CLIENT_ID + ":" + CLIENT_SEC
-    ascii_code = str_code.encode("ascii")
-
-    authorization = "Basic " + str(b64encode(ascii_code))[2:-1]
-    content_type = "application/x-www-form-urlencoded"
-
-    headers = {"Authorization" : authorization, "Content-Type" : content_type}
-
-    response = requests.post(url, headers=headers)
-    data = response.json()
-    # print('Response: ' + response.text)
-
-    new_access_token = data["access_token"]
-    new_r_token = data["refresh_token"]
-
-    print("New Access: " + new_access_token)
-
-    # access_token_lst[0] = new_access_token
-    # r_token_lst[0] = new_r_token
-
-    session['a_token'] = new_access_token
-    session['r_token'] = new_r_token
-
-    return new_access_token, new_r_token
-
 
 def get_recordings(meeting_id_lst):
     """
@@ -115,7 +83,11 @@ def get_recordings(meeting_id_lst):
     headers2 = {"Authorization": authorization2}
 
     # if user has too many meetings, not all will be displayed -- see documentation
-    url2 = "https://api.zoom.us/v2/users/me/recordings"
+    # can only display last 30 days of meetings -- api limitation
+    today = date.today().isoformat()
+    one_month_ago = (date.today()-timedelta(days=30)).isoformat()
+    
+    url2 = "https://api.zoom.us/v2/users/me/recordings?from=" + one_month_ago
     response2 = requests.get(url2, headers=headers2)
     data = response2.json()
     print(data)
@@ -132,7 +104,7 @@ def get_recordings(meeting_id_lst):
             # meeting id is int from zoom
             if str(meeting['id']) == meeting_id:
                 uuid = meeting['uuid']
-                meetings_dict[meeting_id][uuid] = []
+                meetings_dict[meeting_id][uuid] = [meeting['start_time']]
                 for file in meeting['recording_files']:
                     if file["file_type"] == "TRANSCRIPT":
                         print("Transcript found")
@@ -142,6 +114,25 @@ def get_recordings(meeting_id_lst):
                 print("Successfully added meeting instance")
     
     print(meetings_dict)
+    for meeting in meetings_dict:
+        for meeting_inst in meetings_dict[meeting]:
+            file_counter = 0
+            for file in meetings_dict[meeting][meeting_inst][1:]:
+                """
+                filename = meetings_dict[meeting][meeting_inst][0]
+                if file_counter == 0:
+                    pass
+                else:
+                    filename += ("(" + str(file_counter) + ")")
+                """
+                print("Downloading...")
+                print(file + ', ' + filename)
+                dl_url = file + "?access_token=" + session['a_token']
+
+                response = requests.get(dl_url, stream=True)
+                print(response.text)
+
+                file_counter += 1
 
     return data
 
@@ -155,15 +146,51 @@ def index():
     access_token, r_token = get_access_token(auth_code)
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
-    # print("Access token list: " + access_token_lst[0])
-    # print("Refresh token list: " + r_token_lst[0])
 
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    refresh_scheduler = BackgroundScheduler()
-    refresh_scheduler.add_job(func=refresh_token, trigger="interval", seconds=15)
+    """
+    refresh_scheduler = APScheduler()
+    refresh_scheduler.init_app(app)
+    def refresh_token():
+        
+        Used to refresh a user's access token once it has expired
+        
+        print("Refreshing...")
+        r_token = session.get('r_token')
+        print(r_token)
+
+        url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
+
+        str_code = CLIENT_ID + ":" + CLIENT_SEC
+        ascii_code = str_code.encode("ascii")
+
+        authorization = "Basic " + str(b64encode(ascii_code))[2:-1]
+        content_type = "application/x-www-form-urlencoded"
+
+        headers = {"Authorization" : authorization, "Content-Type" : content_type}
+
+        response = requests.post(url, headers=headers)
+        data = response.json()
+        print('Response: ' + response.text)
+
+        new_access_token = data["access_token"]
+        new_r_token = data["refresh_token"]
+
+        print("New Access: " + new_access_token)
+
+        # access_token_lst[0] = new_access_token
+        # r_token_lst[0] = new_r_token
+
+        session['a_token'] = new_access_token
+        session['r_token'] = new_r_token
+
+        return new_access_token, new_r_token
+
+    refresh_scheduler.add_job(func=refresh_token, id="refreshing", trigger="interval", seconds=15)
     refresh_scheduler.start()
+    """
 
     return render_template("index.html")
 
