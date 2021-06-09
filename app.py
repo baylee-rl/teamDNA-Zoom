@@ -12,7 +12,7 @@ config = dotenv_values(".env")
 
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
-REDIRECT = "http://b1e32a6698d5.ngrok.io"
+REDIRECT = "http://teamdna-zoom.herokuapp.com/"
 
 app = Flask(__name__)
 
