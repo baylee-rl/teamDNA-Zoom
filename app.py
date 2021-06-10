@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, session
 # from flask_apscheduler import APScheduler
 from base64 import b64encode
 from datetime import date, timedelta
+import time
 import urllib.request
 # from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -12,7 +13,7 @@ config = dotenv_values(".env")
 
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
-REDIRECT = "http://teamdna-zoom.herokuapp.com/"
+REDIRECT = "http://b4f842c3f9f0.ngrok.io"
 
 app = Flask(__name__)
 
@@ -116,7 +117,7 @@ def get_recordings(meeting_id_lst):
     print(meetings_dict)
     for meeting in meetings_dict:
         for meeting_inst in meetings_dict[meeting]:
-            file_counter = 0
+            # file_counter = 0
             for file in meetings_dict[meeting][meeting_inst][1:]:
                 """
                 filename = meetings_dict[meeting][meeting_inst][0]
@@ -126,15 +127,75 @@ def get_recordings(meeting_id_lst):
                     filename += ("(" + str(file_counter) + ")")
                 """
                 print("Downloading...")
-                print(file + ', ' + filename)
+                # print(file + ', ' + filename)
                 dl_url = file + "?access_token=" + session['a_token']
 
                 response = requests.get(dl_url, stream=True)
                 print(response.text)
+                idx = meetings_dict[meeting][meeting_inst].index(file)
+                print("Index: " + str(idx))
+                meetings_dict[meeting][meeting_inst][idx] = response.text
 
-                file_counter += 1
+                # COMMENT OUT FOR PRODUCTION AFTER THIS LINE
+                # p_transcript = parse_transcript(response.text)
+                # speech_instances(p_transcript)
 
-    return data
+    return meetings_dict
+
+def parse_transcript(transcript):
+    """
+    Inputs:
+        transcript, a string
+    """
+    split_transcript = transcript.split("\r\n")
+    p_transcript = []
+    # print(split_transcript)
+    for idx, line in enumerate(split_transcript):
+        if idx == 0:
+            continue
+        block = []
+        if line == "":
+            if idx == len(split_transcript) - 1 or idx == len(split_transcript) - 2:
+                continue
+            # print(idx)
+            block.append(int(split_transcript[idx + 1]))
+            timestamp = split_transcript[idx + 2].split(" --> ")
+            timestamp[0] = time.strptime(timestamp[0], "%H:%M:%S.%f")
+            timestamp[1] = time.strptime(timestamp[1], "%H:%M:%S.%f")
+            block.append(tuple(timestamp))
+            name_text = split_transcript[idx + 3].split(": ")
+            if len(name_text) == 1:
+                text = split_transcript[idx + 3].split(": ")[0]
+                name = split_transcript[idx - 1].split(": ")[0]
+                block.append(name)
+                block.append(text)
+            else:
+                block.append(name_text[0])
+                block.append(name_text[1])
+            p_transcript.append(block)
+        else:
+            pass
+
+    print(p_transcript)
+    return p_transcript
+
+def speech_instances(p_transcript):
+    """
+    """
+    speech_nums = {}
+    for block in p_transcript:
+        if block[2] not in speech_nums:
+            speech_nums[block[2]] = 1
+        else:
+            speech_nums[block[2]] += 1
+    print(speech_nums)
+    return speech_nums
+        
+# idea: instead of auto refresh bc scheduler is not working, try adding error handling for
+# every API call (maybe can be separate function for abstraction) and if error code returns expired/invalid access token,
+# call refresh function and update session variables.
+# then implement time-based auto-check-for-transcripts (w/ webhook notification thingy?)
+# aka AVOID SCHEDULER at all costs
 
 
 @app.route("/", methods=["GET"])
