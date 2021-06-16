@@ -4,8 +4,9 @@ import requests
 from flask import Flask, render_template, request, session
 # from flask_apscheduler import APScheduler
 from base64 import b64encode
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import urllib.request
+import urllib.parse
 from collections import defaultdict
 # from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -13,7 +14,7 @@ config = dotenv_values(".env")
 
 ***REMOVED***
 ***REMOVED***
-REDIRECT = "http://a47a9927ab89.ngrok.io"
+REDIRECT = "http://c0e4a3644644.ngrok.io"
 
 app = Flask(__name__)
 
@@ -131,7 +132,12 @@ def get_participants(meeting_id):
     """
     authorization = "Bearer " + session['a_token']
     headers = {"Authorization": authorization}
-    url = "https://api.zoom.us/v2/report/meetings/" + meeting_id + "/participants"
+    print(meeting_id)
+    if (meeting_id[0] == "/") or ("//" in meeting_id):
+        print("Encoding...")
+        meeting_id = urllib.parse.quote(meeting_id, safe='')
+        meeting_id = urllib.parse.quote(meeting_id, safe='')
+    url = "https://api.zoom.us/v2/past_meetings/" + meeting_id + "/participants"
     response = requests.get(url, headers=headers)
     participants_data = response.json()
     did_refresh = api_refresh_check(participants_data)
@@ -140,7 +146,11 @@ def get_participants(meeting_id):
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         participants_data = response.json()
-    return participants_data
+    if "code" in participants_data.keys():
+        if participants_data["code"] == 3001:
+            return False
+    print(participants_data)
+    return participants_data["participants"]
 
 def get_recordings(meeting_id_lst):
     """
@@ -159,20 +169,20 @@ def get_recordings(meeting_id_lst):
     url = "https://api.zoom.us/v2/users/me/recordings?from=" + one_month_ago
     response = requests.get(url, headers=headers)
     data = response.json()
-    print(data)
+    # print(data)
     did_refresh = api_refresh_check(data)
     if did_refresh:
-        print("Using access token: " + session['a_token'])
+        # print("Using access token: " + session['a_token'])
         authorization = "Bearer " + session['a_token']
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         data = response.json()
-        print(data)
+        # print(data)
     meetings = data["meetings"]
     # list of dictionaries
     # recordings = data['recording_files']
-    print("Meetings:")
-    print(meetings)
+    # print("Meetings:")
+    # print(meetings)
 
     meetings_dict = {}
     for meeting_id in meeting_id_lst:
@@ -181,40 +191,41 @@ def get_recordings(meeting_id_lst):
             # meeting id is int from zoom
             if str(meeting['id']) == meeting_id:
                 uuid = meeting['uuid']
-                meetings_dict[meeting_id][uuid] = [meeting['start_time']]
+                timedate = meeting["start_time"]
+                timedate = timedate.replace("T", " ")
+                timedate = timedate.replace("Z", " GMT")
+                meetings_dict[meeting_id][uuid] = [timedate]
+                transcript_found = False
                 for file in meeting['recording_files']:
                     if file["file_type"] == "TRANSCRIPT":
                         print("Transcript found")
+                        transcript_found = True
                         download_url = file["download_url"]
                         meetings_dict[meeting_id][uuid].append(download_url)
-                print("UUID: " + meeting['uuid'])
-                print("Successfully added meeting instance")
+                if transcript_found == False:
+                    del meetings_dict[meeting_id][uuid]
+                    print("UUID contained no transcripts: " + uuid)
+                else:
+                    print("UUID successfully added")
     
-    print(meetings_dict)
+    # print(meetings_dict)
     for meeting in meetings_dict:
         for meeting_inst in meetings_dict[meeting]:
             for file in meetings_dict[meeting][meeting_inst][1:]:
-                """
-                filename = meetings_dict[meeting][meeting_inst][0]
-                if file_counter == 0:
-                    pass
-                else:
-                    filename += ("(" + str(file_counter) + ")")
-                """
                 print("Downloading...")
                 # print(file + ', ' + filename)
                 dl_url = file + "?access_token=" + session['a_token']
 
                 response = requests.get(dl_url, stream=True)
-                print(response.text)
+                # print(response.text)
                 idx = meetings_dict[meeting][meeting_inst].index(file)
-                print("Index: " + str(idx))
+                # print("Index: " + str(idx))
                 meetings_dict[meeting][meeting_inst][idx] = response.text
                 p_transcript = parse_transcript(response.text)
                 meetings_dict[meeting][meeting_inst][idx] = p_transcript
             meetings_dict[meeting][meeting_inst] = { "transcripts": meetings_dict[meeting][meeting_inst]}
-            p_data = get_participants(meeting)["participants"]
-            meetings_dict[meeting][meeting_inst]["participants"] = p_data
+            # p_data = get_participants(meeting)["participants"]
+            # meetings_dict[meeting][meeting_inst]["participants"] = p_data
 
     # somewhere above call get meeting participants to add more data to meetings dict please
     # TO-DO: determine who was host and add key
@@ -232,6 +243,8 @@ def parse_transcript(transcript):
     for idx, line in enumerate(split_transcript):
         if idx == 0:
             continue
+        elif line == "WEBVTT":
+            continue
         block = []
         if line == "":
             if idx == len(split_transcript) - 1 or idx == len(split_transcript) - 2:
@@ -247,7 +260,12 @@ def parse_transcript(transcript):
             name_text = split_transcript[idx + 3].split(": ")
             if len(name_text) == 1:
                 text = split_transcript[idx + 3].split(": ")[0]
-                name = split_transcript[idx - 1].split(": ")[0]
+                for line in reversed(split_transcript[:(idx + 1)]):
+                    if len(line.split(": ")) == 2:
+                        name = line.split(": ")[0]
+                        break
+                    else:
+                        continue
                 block.append(name)
                 block.append(text)
             else:
@@ -256,8 +274,8 @@ def parse_transcript(transcript):
             p_transcript.append(block)
         else:
             pass
-
-    print(p_transcript)
+    # print("Parsed transcript as follows:")
+    # print(p_transcript)
     return p_transcript
 
 def speech_instances(transcript_list):
@@ -270,14 +288,15 @@ def speech_instances(transcript_list):
                 speech_nums[block[2]] = 1
             else:
                 speech_nums[block[2]] += 1
-    print(speech_nums)
+    # print("Number of")
+    # print(speech_nums)
     return speech_nums
         
 def speech_durations(transcript_list):
     """
     Calculates duration each participant spoke and distribution of speaking time
     """
-    durations = collections.defaultdict(lambda: datetime.timedelta())
+    durations = defaultdict(lambda: timedelta())
     for p_transcript in transcript_list[1:]:
         for block in p_transcript:
             tstamp1 = block[1][0]
@@ -286,7 +305,7 @@ def speech_durations(transcript_list):
             durations[block[2]] += partial_duration
 
     # calculate distribution
-    distribution = collections.defaultdict(float)
+    distribution = defaultdict(float)
     total_speaking_time = 0
     for participant in durations:
         total_speaking_time += int(durations[participant].total_seconds())
@@ -295,12 +314,6 @@ def speech_durations(transcript_list):
 
     return durations, distribution
 
-
-# idea: instead of auto refresh bc scheduler is not working, try adding error handling for
-# every API call (maybe can be separate function for abstraction) and if error code returns expired/invalid access token,
-# call refresh function and update session variables.
-# then implement time-based auto-check-for-transcripts (w/ webhook notification thingy?)
-# aka AVOID SCHEDULER at all costs
 
 
 @app.route("/", methods=["GET"])
@@ -316,39 +329,65 @@ def index():
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    """
-    refresh_scheduler = APScheduler()
-    refresh_scheduler.init_app(app)
-
-    refresh_scheduler.add_job(func=refresh_token, id="refreshing", trigger="interval", seconds=15)
-    refresh_scheduler.start()
-    """
-
     return render_template("index.html")
 
 
 @app.route("/", methods=["POST"])
-def receive():
+def dashboard():
     if request.method == "POST":
         result = request.form
         meeting_ids = result["meetids"]
         meeting_id_lst = meeting_ids.split(", ")
         print("Meeting IDs: ")
         print(meeting_id_lst)
-        print("Recordings:")
         meetings_dict = get_recordings(meeting_id_lst)
 
-        ### may change in prod.
+        ### may change in prod. ###
         for meeting in meetings_dict:
+            print("Meeting: ")
+            print(meetings_dict[meeting])
             for meeting_inst in meetings_dict[meeting]:
-                t_list = meetings_dict[meeting][meeting_inst]["transcripts"]
                 meeting_vals = meetings_dict[meeting][meeting_inst]
+                participants = get_participants(meeting_inst)
+                if not participants:
+                    continue
+                meeting_vals["participants"] = participants
+                t_list = meeting_vals["transcripts"]
                 meeting_vals["instances"] = speech_instances(t_list)
                 meeting_vals["durations"] = speech_durations(t_list)[0]
                 meeting_vals["distribution"] = speech_durations(t_list)[1]
-                print(meeting_vals)
-        return render_template("index.html")
+                # print("Meeting Recording Data:")
+                # print(meeting_vals)
 
+        ### retroactively update metrics if any participant was excluded ###
+        for meeting in meetings_dict:
+            for meeting_inst in meetings_dict[meeting]:
+                meeting_vals = meetings_dict[meeting][meeting_inst]
+                if "instances" not in meeting_vals.keys():
+                    continue
+                instances = meeting_vals["instances"]
+                durations = meeting_vals["durations"]
+                distribution = meeting_vals["distribution"]
+                participants = meeting_vals["participants"]
+                # instances
+                for participant in participants:
+                    name = participant["name"]
+                    if name not in instances.keys():
+                        instances[name] = 0
+                    if name not in durations.keys():
+                        durations[name] = timedelta(seconds=0)
+                    if name not in distribution.keys():
+                        distribution[name] = 0.00
+                print("UPDATED MEETING VALS: (LOOK HERE)")
+                print(meeting_vals)
+
+        return render_template("dashboard.html", meetings = meetings_dict)
+
+### if someone didnt log in and had to rejoin, they will have two or more instances w/ different ids potentially
+# gotta fix it, but uh oh what if two people have same name? thats why gotta check emails
+# also retroactive must use email
+# basically use email for everything paired w/ name
+# idea: early on, instead of name as key/identifier, use tuple of name + email, everywhere, so you can check both
 
 
 if __name__ == "__main__":
