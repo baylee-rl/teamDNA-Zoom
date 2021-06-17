@@ -5,7 +5,7 @@
 {% block content %}
     <p>This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID, with no spaces, below.</p>
     <br>
-    <form action="{{ url_for('dashboard') }}" method="POST">
+    <form action="{{ url_for('dashboard_test') }}">
         <div id="form">
             <label for="meetids">Meeting ID:</label>
             <input type="text" name="meetids">
@@ -26,9 +26,15 @@
 
                 <div class="meeting-box">
                     <h6>{{ meetings[meeting][uuid]["timedate"] }}</h6>
-                    <p>Participants: 
+                    <p><svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" fill="#1A5F89" class="bi bi-person-fill" viewBox="0 0 27 27" style="transform: translate(9px, 13px)" >
+                        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                      </svg>
                         {% for participant in meetings[meeting][uuid]["participants"] %}
-                            {% if loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
+                            {% if loop.index == 5 %}
+                                 ...
+                            {% elif loop.index > 5 %}
+
+                            {% elif loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
                                 {{ participant }}
                             {% else %}
                                 {{ participant }}, 
