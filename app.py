@@ -14,7 +14,7 @@ config = dotenv_values(".env")
 
 ***REMOVED***
 ***REMOVED***
-REDIRECT = "http://c0e4a3644644.ngrok.io"
+REDIRECT = "http://0ac6a6696394.ngrok.io"
 
 app = Flask(__name__)
 
@@ -146,11 +146,17 @@ def get_participants(meeting_id):
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         participants_data = response.json()
+    # prevents unfinished meetings from being included in dashboard
     if "code" in participants_data.keys():
         if participants_data["code"] == 3001:
             return False
-    print(participants_data)
-    return participants_data["participants"]
+    # print(participants_data)
+    new_participants = {}
+    for participant in participants_data['participants']:
+        if participant["name"] in new_participants.keys() and participant["user_email"] == '':
+            continue
+        new_participants[participant["name"]] = participant["user_email"]
+    return new_participants
 
 def get_recordings(meeting_id_lst):
     """
@@ -190,11 +196,17 @@ def get_recordings(meeting_id_lst):
         for meeting in meetings:
             # meeting id is int from zoom
             if str(meeting['id']) == meeting_id:
+                topic = meeting['topic']
+                host_id = meeting['host_id']
+                duration = meeting['duration']
                 uuid = meeting['uuid']
                 timedate = meeting["start_time"]
                 timedate = timedate.replace("T", " ")
                 timedate = timedate.replace("Z", " GMT")
-                meetings_dict[meeting_id][uuid] = [timedate]
+                meetings_dict[meeting_id][uuid] = [timedate, duration]
+                if "topic" not in meetings_dict[meeting_id].keys():
+                    meetings_dict[meeting_id]["topic"] = topic
+                    meetings_dict[meeting_id]["host_id"] = host_id
                 transcript_found = False
                 for file in meeting['recording_files']:
                     if file["file_type"] == "TRANSCRIPT":
@@ -210,8 +222,10 @@ def get_recordings(meeting_id_lst):
     
     # print(meetings_dict)
     for meeting in meetings_dict:
-        for meeting_inst in meetings_dict[meeting]:
-            for file in meetings_dict[meeting][meeting_inst][1:]:
+        for meeting_inst in meetings_dict[meeting].keys():
+            if meeting_inst == "topic" or meeting_inst == "host_id":
+                continue
+            for file in meetings_dict[meeting][meeting_inst][2:]:
                 print("Downloading...")
                 # print(file + ', ' + filename)
                 dl_url = file + "?access_token=" + session['a_token']
@@ -223,7 +237,9 @@ def get_recordings(meeting_id_lst):
                 meetings_dict[meeting][meeting_inst][idx] = response.text
                 p_transcript = parse_transcript(response.text)
                 meetings_dict[meeting][meeting_inst][idx] = p_transcript
-            meetings_dict[meeting][meeting_inst] = { "transcripts": meetings_dict[meeting][meeting_inst]}
+            meeting_vals = meetings_dict[meeting][meeting_inst]
+            meeting_vals = { "transcripts": meeting_vals[2:], "timedate": meeting_vals[0], "duration": meeting_vals[1]}
+            meetings_dict[meeting][meeting_inst] = meeting_vals
             # p_data = get_participants(meeting)["participants"]
             # meetings_dict[meeting][meeting_inst]["participants"] = p_data
 
@@ -282,7 +298,7 @@ def speech_instances(transcript_list):
     """
     """
     speech_nums = {}
-    for p_transcript in transcript_list[1:]:
+    for p_transcript in transcript_list:
         for block in p_transcript:
             if block[2] not in speech_nums:
                 speech_nums[block[2]] = 1
@@ -297,7 +313,7 @@ def speech_durations(transcript_list):
     Calculates duration each participant spoke and distribution of speaking time
     """
     durations = defaultdict(lambda: timedelta())
-    for p_transcript in transcript_list[1:]:
+    for p_transcript in transcript_list:
         for block in p_transcript:
             tstamp1 = block[1][0]
             tstamp2 = block[1][1]
@@ -344,11 +360,17 @@ def dashboard():
 
         ### may change in prod. ###
         for meeting in meetings_dict:
-            print("Meeting: ")
-            print(meetings_dict[meeting])
+            # print("Meeting: ")
+            # print(meetings_dict[meeting])
             for meeting_inst in meetings_dict[meeting]:
+                if meeting_inst == "topic" or meeting_inst == "host_id":
+                    continue
                 meeting_vals = meetings_dict[meeting][meeting_inst]
+                # print("MEETING_VALS:")
+                # print(meeting_vals)
                 participants = get_participants(meeting_inst)
+                print("PARTICIPANTS:")
+                print(participants)
                 if not participants:
                     continue
                 meeting_vals["participants"] = participants
@@ -362,6 +384,8 @@ def dashboard():
         ### retroactively update metrics if any participant was excluded ###
         for meeting in meetings_dict:
             for meeting_inst in meetings_dict[meeting]:
+                if meeting_inst == "topic" or meeting_inst == "host_id":
+                    continue
                 meeting_vals = meetings_dict[meeting][meeting_inst]
                 if "instances" not in meeting_vals.keys():
                     continue
@@ -369,19 +393,29 @@ def dashboard():
                 durations = meeting_vals["durations"]
                 distribution = meeting_vals["distribution"]
                 participants = meeting_vals["participants"]
-                # instances
-                for participant in participants:
-                    name = participant["name"]
-                    if name not in instances.keys():
-                        instances[name] = 0
-                    if name not in durations.keys():
-                        durations[name] = timedelta(seconds=0)
-                    if name not in distribution.keys():
-                        distribution[name] = 0.00
-                print("UPDATED MEETING VALS: (LOOK HERE)")
-                print(meeting_vals)
-
+                # solves participants not in transcript
+                for participant in participants.keys():
+                    if participant not in instances.keys():
+                        instances[participant] = 0
+                    if participant not in durations.keys():
+                        durations[participant] = timedelta(seconds=0)
+                    if participant not in distribution.keys():
+                        distribution[participant] = 0.00
+                # print("UPDATED MEETING VALS: (LOOK HERE)")
+                # print(meeting_vals)
+                print("Participants:")
+                print(meeting_vals["participants"])
         return render_template("dashboard.html", meetings = meetings_dict)
+
+@app.route('/test')
+def dashboard_test():
+    test_meetings_dict = {}
+    test_meetings_dict["1234567"] = {"host_id":"z8dfkgABBBBBBBfp8uQ", "topic":"REU Daily Zooms :)", "gkABCDEnCkPuA==":{"timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}}
+    test_meetings_dict["9876543"] = {"host_id":"08HFJKANmn7asd", "topic":"TeamDNA Bi-Monthly Meetings", "KnmdHFAnsDHA==":{"timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}}
+    test_meetings_dict["1234567"]["fjHEJmnfmdHf=="] = {"timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}
+    test_meetings_dict["9876543"]["hjFDbEUTYZOs=="] = {"timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}
+    
+    return render_template("dashboard-test.html", meetings = test_meetings_dict)
 
 ### if someone didnt log in and had to rejoin, they will have two or more instances w/ different ids potentially
 # gotta fix it, but uh oh what if two people have same name? thats why gotta check emails
@@ -389,6 +423,9 @@ def dashboard():
 # basically use email for everything paired w/ name
 # idea: early on, instead of name as key/identifier, use tuple of name + email, everywhere, so you can check both
 
+### idea
+# zoom marketplace gives option to install app from a site page, so we can make
+# a home/landing page with install button that they can bookmark and click button to install/authorize/start analyzing
 
 if __name__ == "__main__":
     app.run(debug=True)

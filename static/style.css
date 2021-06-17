@@ -3,6 +3,7 @@ body {
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
     font-weight: 300;
     font-size: larger;
+    text-align: center;
 }
 
 div {
@@ -36,11 +37,11 @@ input {
 }
 
 #submit {
-    font-family: 'Open Sans', 'Trebuchet MS', sans-serif;
-    color: rgb(41, 108, 131);
-    font-size: medium;
-    font-weight: 700;
-    background-color: lightblue;
+    font-family: 'Ubuntu', sans-serif;
+    color: #1A5F89;
+    font-size: 1.7vh;
+    font-weight: 500;
+    background-color: #BCE4F0;
     border: none;
     border-radius: 15px;
     width: 20%;
@@ -50,35 +51,63 @@ input {
 }
 
 #submit:hover {
-    background-color: rgb(45, 140, 255);
+    background-color: #2D8CFF;
     color: white;
 }
 
 div#dashboard {
-    border: 1px solid gray;
     width: 75%;
     display: flex;
     flex-direction: column;
+    padding: 1vh 3vw;
+    padding-top: 1vh;
 }
 
 .meeting-group {
-    border: 1px solid gray;
     width: 100%;
 }
 
 .meeting-header {
-    border: 1px solid gray;
     width: 100%;
+    margin-bottom: 0vh;
+    border-top: 1px solid rgb(182, 182, 182);
+    border-bottom: 1px solid rgb(182, 182, 182);
+    font-weight: 300;
+}
+
+h5 {
+    font-weight: 500;
 }
 
 div.meetings {
-    border: 1px solid gray;
     display: flex;  
     flex-direction: row;
+    column-gap: 3vw;
     width: 100%;
+    padding: 1vh 3vw 0vh 3vw;
+    margin-bottom: 3vh;
+    border-radius: 5px;
 }
 
 .meeting-box {
-    border: 1px solid gray;
-    width: 25%;
+    background-color: #BCE4F0;
+    width: 20%;
+    height: 18vh;
+    border-radius: 15px;
+    font-size: 1.6vh;
+    color: #0D3045;
+    font-weight: 400;
+    padding: 0.5vh 0.5vw;
+}
+
+h6 {
+    font-size: 1.9vh;
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    margin: 1vh 0vw 0vh 0vw;
+    color: #1A5F89;
+}
+
+p {
+    margin-top: 1vh;
 }
