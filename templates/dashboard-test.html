@@ -26,7 +26,7 @@
 
                 <div class="meeting-box">
                     <h6>{{ meetings[meeting][uuid]["timedate"] }}</h6>
-                    <p><svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" fill="#1A5F89" class="bi bi-person-fill" viewBox="0 0 27 27" style="transform: translate(9px, 13px)" >
+                    <p><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="#1A5F89" class="bi bi-person-fill" viewBox="0 0 15 15" style="transform: translate(-2px, 4px)">
                         <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
                       </svg>
                         {% for participant in meetings[meeting][uuid]["participants"] %}
@@ -40,7 +40,11 @@
                                 {{ participant }}, 
                             {% endif %}
                         {% endfor %}
-                        <br>
+                    </p>
+                    <p><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#1A5F89" class="bi bi-clock-fill" viewBox="0 0 17 17" style="transform: translate(-3px, 5px)">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                      </svg>
+                        {{ meetings[meeting][uuid]["duration"] }}
                     </p>
                 </div>
                 {% endfor %}
