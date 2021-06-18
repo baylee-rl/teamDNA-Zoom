@@ -14,7 +14,7 @@ config = dotenv_values(".env")
 
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
-REDIRECT = "http://0ac6a6696394.ngrok.io"
+REDIRECT = "http://7bcd16315c95.ngrok.io"
 
 app = Flask(__name__)
 
@@ -307,6 +307,62 @@ def speech_instances(transcript_list):
     # print("Number of")
     # print(speech_nums)
     return speech_nums
+
+def silence_breaking(t_list):
+    """
+    """
+    # breaks = {2.5 = {sophia = {4}, baylee = {3}}, 5 = {tina = 2}, 10 = {}, times = {sophia = [], tina = []}, total = {[]}}}
+    breaks = {}
+    for p_transcript in t_list:
+        for idx, block in enumerate(p_transcript):
+            if idx == 0:
+                continue
+            prev_tstamp = p_transcript[idx-1][1][1]
+            prev_speaker = p_transcript[idx-1][2]
+            curr_tstamp = block[1][0]
+            curr_speaker = block[2]
+            silence_dur = curr_tstamp - prev_tstamp
+            if silence_dur >= timedelta(seconds=2.5):
+                if prev_speaker not in breaks:
+                    breaks[prev_speaker] = {"total-breaks":0, "total-starts":0, "avg-break":timedelta(seconds=0), 2.5:0, 5:0, 7.5:0, 10:0, "times":[]}
+                if curr_speaker not in breaks:
+                    breaks[curr_speaker] = {"total-breaks":0, "total-starts":0, "avg-break":timedelta(seconds=0), 2.5:0, 5:0, 7.5:0, 10:0, "times":[]}
+                if silence_dur >= timedelta(seconds=5):
+                    if silence_dur >= timedelta(seconds=7.5):
+                        if silence_dur >= timedelta(seconds=10):
+                            breaks[prev_speaker]["total-starts"] += 1
+                            breaks[curr_speaker]["total-breaks"] += 1
+                            breaks[curr_speaker][10] += 1
+                            breaks[curr_speaker]["times"].append(silence_dur)
+                        else:
+                            breaks[prev_speaker]["total-starts"] += 1
+                            breaks[curr_speaker]["total-breaks"] += 1
+                            breaks[curr_speaker][7.5] += 1
+                            breaks[curr_speaker]["times"].append(silence_dur)
+                            
+                    else:
+                        breaks[prev_speaker]["total-starts"] += 1
+                        breaks[curr_speaker]["total-breaks"] += 1
+                        breaks[curr_speaker][5] += 1
+                        breaks[curr_speaker]["times"].append(silence_dur)
+                else:
+                    breaks[prev_speaker]["total-starts"] += 1
+                    breaks[curr_speaker]["total-breaks"] += 1
+                    breaks[curr_speaker][2.5] += 1
+                    breaks[curr_speaker]["times"].append(silence_dur)
+    for participant in breaks:
+        times_list = breaks[participant]["times"]
+        if len(times_list) == 0:
+            average = 0
+            breaks[participant]["avg-break"] = average
+            continue
+        average = sum(times_list, timedelta()) / len(times_list)
+        breaks[participant]["avg-break"] = average
+    print(breaks)
+    return breaks
+
+
+
         
 def speech_durations(transcript_list):
     """
@@ -378,6 +434,7 @@ def dashboard():
                 meeting_vals["instances"] = speech_instances(t_list)
                 meeting_vals["durations"] = speech_durations(t_list)[0]
                 meeting_vals["distribution"] = speech_durations(t_list)[1]
+                meeting_vals["silence-breaking"] = silence_breaking(t_list)
                 # print("Meeting Recording Data:")
                 # print(meeting_vals)
 
@@ -410,10 +467,10 @@ def dashboard():
 @app.route('/test')
 def dashboard_test():
     test_meetings_dict = {}
-    test_meetings_dict["1234567"] = {"host_id":"z8dfkgABBBBBBBfp8uQ", "topic":"REU Daily Zooms :)", "gkABCDEnCkPuA==":{"timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}}
-    test_meetings_dict["9876543"] = {"host_id":"08HFJKANmn7asd", "topic":"TeamDNA Bi-Monthly Meetings", "KnmdHFAnsDHA==":{"timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}}
-    test_meetings_dict["1234567"]["fjHEJmnfmdHf=="] = {"timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}
-    test_meetings_dict["9876543"]["hjFDbEUTYZOs=="] = {"timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}
+    test_meetings_dict["1234567"] = {"host_id":"z8dfkgABBBBBBBfp8uQ", "topic":"REU Daily Zooms :)", "gkABCDEnCkPuA==":{"duration":13, "timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}}
+    test_meetings_dict["9876543"] = {"host_id":"08HFJKANmn7asd", "topic":"TeamDNA Bi-Monthly Meetings", "KnmdHFAnsDHA==":{"duration":24, "timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}}
+    test_meetings_dict["1234567"]["fjHEJmnfmdHf=="] = {"duration":57, "timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}
+    test_meetings_dict["9876543"]["hjFDbEUTYZOs=="] = {"duration":46, "timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}
     
     return render_template("dashboard-test.html", meetings = test_meetings_dict)
 
