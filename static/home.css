@@ -1,0 +1,117 @@
+/* navbar */
+
+nav {
+    display: inline-block;
+    list-style-type: none;
+    font-family: "Montserrat", sans-serif;
+    width: 80%;
+}
+
+ul {
+    list-style-type: none;
+    margin-top: 5vh;
+    margin-right: 3vw;
+}
+
+li {
+    float: right;
+}
+
+li a {
+    display: block;
+    margin-left: 2.5em;
+    margin-top: -1.8vh;
+    margin-bottom: 0.5vh;
+    overflow: none;
+    text-decoration: none;
+    color:rgb(61, 61, 61);
+}
+
+li a {
+    text-decoration: none;
+    background-image: linear-gradient(#2D8CFF, #2D8CFF);
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 0.5px;
+    transition: background-size .5s;
+    padding-bottom: 0.5vh;
+
+}
+
+li a:hover, li a:focus {
+    background-size: 100% 0.5px;
+}
+
+h1#logo {
+    float: left;
+    position: relative;
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    font-size: xx-large;
+    width: 20%;
+}
+
+h1 {
+    font-family: "Ubuntu", sans-serif;
+    text-align: center;
+    margin-top: 1vh;
+    margin-bottom: 3vh;
+    cursor: default;
+}
+
+/* end navbar */
+
+body {
+    width: 100%;
+}
+
+div#intro {
+    width: 100%;
+    text-align: center;
+}
+
+p {                 
+    font-family: Montserrat;
+    font-size: 40px;
+    margin-bottom: 2vh;
+    text-align: center
+}
+
+button {
+    font-family: Montserrat;
+    font-size: 20px;
+    width: 15%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2vh;
+    text-align: center
+}
+
+#more-info {
+    text-decoration: none;
+    font-family: Montserrat;
+    font-size: 20px;
+    text-align: center
+}
+
+#actions {
+    text-decoration: none;
+    font-family: Montserrat;
+    font-size: 20px;
+    text-align: center
+}
+
+#create-account {
+    text-decoration: none;
+}
+
+#create-account:hover {
+    text-decoration: underline;
+}
+
+
+
+div#white-space {
+    color: #1A5F89;
+}
