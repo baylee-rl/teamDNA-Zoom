@@ -1,33 +1,63 @@
+import os
 from dotenv import dotenv_values
 import requests
 # import atexit
 from flask import Flask, render_template, request, session
-# from flask_apscheduler import APScheduler
+from flask_sqlalchemy import SQLAlchemy
+from flask_heroku import Heroku
 from base64 import b64encode
 from datetime import date, datetime, timedelta
 import urllib.request
 import urllib.parse
 from collections import defaultdict
+from werkzeug.security import generate_password_hash, check_password_hash
 # from apscheduler.schedulers.background import BackgroundScheduler
 
 config = dotenv_values(".env")
 
+"""
+set the following in the heroku deployment config
+
+CLIENT_ID = os.environ.get('CLIENT_ID')
+CLIENT_SEC = os.environ.get('CLIENT_SECRET')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+REDIRECT = "http://b778df11a859.ngrok.io"  <-- this will become the final app url
+OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
+"""
+
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
-REDIRECT = "http://7bcd16315c95.ngrok.io"
+SECRET_KEY = "example"
+REDIRECT = "http://9effec85e18c.ngrok.io"
+OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
+SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+heroku = Heroku(app)
+db = SQLAlchemy(app)
+app.secret_key = SECRET_KEY
 
-# change this later
-app.secret_key = 'EXAMPLE_KEY'
+# DATABASE #
 
-"""
-Ask users to either launch app from given link every time, or bookmark their personal link (i.e. the one with their auth code)
-"""
+class User(db.Model):
+    __tablename__ = "users"
 
-# act as global variables
-# access_token_lst = [None]
-# r_token_lst = [None]
+    # columns
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
 
 # FUNCTIONS #
 
@@ -360,10 +390,7 @@ def silence_breaking(t_list):
         breaks[participant]["avg-break"] = average
     print(breaks)
     return breaks
-
-
-
-        
+       
 def speech_durations(transcript_list):
     """
     Calculates duration each participant spoke and distribution of speaking time
@@ -387,9 +414,64 @@ def speech_durations(transcript_list):
     return durations, distribution
 
 
+# ROUTING #
+
+"""
+@app.route("/example", methods=["GET", "POST"])
+def example():
+    return render_template("example.html")
+"""
+
+@app.route("/home")
+def home():
+    return render_template("home.html")
+
+@app.route("/sign-up")
+def sign_up():
+    return render_template("sign-up.html")
+
+
+@app.route("/sign-up", methods=["POST"])
+def sign_up_submitted():
+    if request.method == "POST":
+        user_info = request.form
+        email = user_info["email"]
+        password = user_info["password"]
+        password_hash = generate_password_hash(password)
+
+        other_user = User.query.filter_by(email=email).first()
+        if other_user:
+            return render_template("sign-up.html", duplicate_email=True)
+
+        new_user = User(email=email, password_hash=password_hash, role="User")
+        db.session.add(new_user)
+        db.session.commit()
+
+        user_data = User.query.all()
+        return render_template("sign-up-success.html", user_data = user_data)
+    return render_template("sign-up.html")
+
+@app.route("/test-sign-up")
+def test_sign_up():
+    return render_template("sign-up-success.html", redirect=OAUTH)
+
+@app.route("/sign-in")
+def sign_in():
+    return render_template("sign-in.html")
+
+@app.route("/sign-in", methods=["POST"])
+def sign_in_submitted():
+    info_entered = request.form
+    email_entered = info_entered["email"]
+    password_entered = info_entered["password"]
+    user = User.query.filter_by(email=email_entered).first()
+    if user is not None and check_password_hash(user.password_hash, password_entered):
+        user_data = user
+
+    return render_template("sign-in-success.html", user=user_data, redirect=OAUTH)
 
 @app.route("/", methods=["GET"])
-def index():
+def submit():
     # app will fail if user has not authenticated OAuth extension
     auth_code = request.args['code']
     print("Authorization code: " + auth_code)
@@ -401,20 +483,21 @@ def index():
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    return render_template("index.html")
+    return render_template("submit.html", redirect=OAUTH)
 
 
-@app.route("/", methods=["POST"])
-def dashboard():
+@app.route("/submitted", methods=["POST"])
+def submit_post():
     if request.method == "POST":
         result = request.form
-        meeting_ids = result["meetids"]
+        meeting_ids = result["meetid"]
         meeting_id_lst = meeting_ids.split(", ")
         print("Meeting IDs: ")
         print(meeting_id_lst)
         meetings_dict = get_recordings(meeting_id_lst)
 
         ### may change in prod. ###
+        """ **moving to dashboard/instructor page only
         for meeting in meetings_dict:
             # print("Meeting: ")
             # print(meetings_dict[meeting])
@@ -462,27 +545,19 @@ def dashboard():
                 # print(meeting_vals)
                 print("Participants:")
                 print(meeting_vals["participants"])
-        return render_template("dashboard.html", meetings = meetings_dict)
+        """
+        return render_template("submit.html", meetings = meetings_dict, redirect=OAUTH)
 
 @app.route('/test')
-def dashboard_test():
+def submit_test():
     test_meetings_dict = {}
     test_meetings_dict["1234567"] = {"host_id":"z8dfkgABBBBBBBfp8uQ", "topic":"REU Daily Zooms :)", "gkABCDEnCkPuA==":{"duration":13, "timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}}
     test_meetings_dict["9876543"] = {"host_id":"08HFJKANmn7asd", "topic":"TeamDNA Bi-Monthly Meetings", "KnmdHFAnsDHA==":{"duration":24, "timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}}
     test_meetings_dict["1234567"]["fjHEJmnfmdHf=="] = {"duration":57, "timedate":"2021-05-21 17:44:32 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":""}}
     test_meetings_dict["9876543"]["hjFDbEUTYZOs=="] = {"duration":46, "timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}
     
-    return render_template("dashboard-test.html", meetings = test_meetings_dict)
+    return render_template("submit-test.html", meetings = test_meetings_dict)
 
-### if someone didnt log in and had to rejoin, they will have two or more instances w/ different ids potentially
-# gotta fix it, but uh oh what if two people have same name? thats why gotta check emails
-# also retroactive must use email
-# basically use email for everything paired w/ name
-# idea: early on, instead of name as key/identifier, use tuple of name + email, everywhere, so you can check both
-
-### idea
-# zoom marketplace gives option to install app from a site page, so we can make
-# a home/landing page with install button that they can bookmark and click button to install/authorize/start analyzing
 
 if __name__ == "__main__":
     app.run(debug=True)

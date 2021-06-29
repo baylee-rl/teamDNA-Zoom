@@ -1,0 +1,186 @@
+/* navbar */
+
+nav {
+    display: inline-block;
+    list-style-type: none;
+    font-family: "Montserrat", sans-serif;
+    width: 80%;
+}
+
+ul {
+    list-style-type: none;
+    margin-top: 5vh;
+    margin-right: 3vw;
+}
+
+li {
+    float: right;
+}
+
+li a {
+    display: block;
+    margin-left: 2.5em;
+    margin-top: -1.8vh;
+    margin-bottom: 0.5vh;
+    overflow: none;
+    text-decoration: none;
+    color:rgb(61, 61, 61);
+}
+
+li a {
+    text-decoration: none;
+    background-image: linear-gradient(#2D8CFF, #2D8CFF);
+    background-position: 0% 100%;
+    background-repeat: no-repeat;
+    background-size: 0% 0.5px;
+    transition: background-size .5s;
+    padding-bottom: 0.5vh;
+
+}
+
+li a:hover, li a:focus {
+    background-size: 100% 0.5px;
+}
+
+h1#logo {
+    float: left;
+    position: relative;
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    font-size: xx-large;
+    width: 20%;
+}
+
+/* end navbar */
+
+h1 {
+    font-family: "Ubuntu", sans-serif;
+    text-align: center;
+    margin-top: 1vh;
+    margin-bottom: 3vh;
+    cursor: default;
+}
+
+h2 {
+    font-family: "Montserrat", sans-serif;
+    font-size: xx-large;
+    text-align: center;
+    margin-top: 10vh;
+}
+
+div#sign-up {
+    width: 25%;
+    margin: auto;
+    margin-top: 10vh;
+    padding: 5vh 4vw;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 lightgray, 0 6px 20px 0 lightgray;
+}
+
+form {
+    font-family: "Montserrat";
+    font-size: medium;
+    line-height: 3.5vh;
+    color: rgb(95, 95, 95);
+}
+
+small {
+    margin-left: 0.5vw;
+    color: red;
+}
+
+input {
+    border: none;
+    border-bottom: 1px solid lightgray;
+    width: 100%;
+    height: 1em;
+    font-family: "Montserrat", sans-serif;
+    font-size: 15px;
+    margin-bottom: 1.5vh;
+}
+
+input:focus {
+    outline: none;
+    border-bottom: 1px solid #2D8CFF;
+}
+
+label {
+    margin-left: 0.1vw;
+}
+
+input[type=submit] {
+    width: 45%;
+    height: 1.8em;
+    border: none;
+    border-radius: 20px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 2.5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+input[type=submit]:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+button {
+    width: 18%;
+    height: 2.8em;
+    border: none;
+    border-radius: 30px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: larger;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+button:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+
+@media screen and (max-width: 1024px) {
+    div#sign-up {
+        width: 50%;
+    }
+
+    button {
+        width: 30%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    div#sign-up {
+        width: 60%;
+    }
+
+    button {
+        width: 45%;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    div#sign-up {
+        width: 70%;
+    }
+
+    button {
+        width: 55%;
+    }
+}
