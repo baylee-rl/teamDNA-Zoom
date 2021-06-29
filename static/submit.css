@@ -1,65 +1,6 @@
-/* navbar */
-
-nav {
-    display: inline-block;
-    list-style-type: none;
-    font-family: "Montserrat", sans-serif;
-    width: 80%;
-    margin-bottom: 2vh;
-}
-
-ul {
-    list-style-type: none;
-    margin-top: 5vh;
-    margin-right: 3vw;
-}
-
-li {
-    float: right;
-}
-
-li a {
-    display: block;
-    margin-left: 2.5em;
-    margin-top: -1.8vh;
-    margin-bottom: 0.5vh;
-    overflow: none;
-    text-decoration: none;
-    color:rgb(61, 61, 61);
-}
-
-li a {
-    text-decoration: none;
-    background-image: linear-gradient(#2D8CFF, #2D8CFF);
-    background-position: 0% 100%;
-    background-repeat: no-repeat;
-    background-size: 0% 0.5px;
-    transition: background-size .5s;
-    padding-bottom: 0.5vh;
-
-}
-
-li a:hover, li a:focus {
-    background-size: 100% 0.5px;
-}
-
-h1#logo {
-    float: left;
-    position: relative;
-    font-family: "Ubuntu", sans-serif;
-    font-weight: 500;
-    font-size: xx-large;
-    width: 20%;
-}
-
-/* end navbar */
-
 body {
     background-color: white;
-    padding: 0vh 1vw;
-    font-family: 'Open Sans','Trebuchet MS', sans-serif;
-    font-weight: 300;
-    font-size: larger;
+
     text-align: center;
 }
 
@@ -75,6 +16,9 @@ form {
     flex-direction: column;
     width: 40%;
     align-items: center;
+    font-family: 'Montserrat','Trebuchet MS', sans-serif;
+    font-weight: 300;
+    font-size: larger;
 }
 
 input {
@@ -115,6 +59,8 @@ h6 {
 p {
     font-size: medium;
     width: 100%;
+    font-family: 'Open Sans','Trebuchet MS', sans-serif;
+    font-weight: 300;
 }
 
 p#intro {
@@ -161,7 +107,7 @@ div#dashboard {
 }
 
 .meeting-group {
-    width: 100%;
+    font-family: 'Open Sans','Trebuchet MS', sans-serif;
 }
 
 .meeting-header {

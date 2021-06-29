@@ -16,7 +16,9 @@
   <body>
     <h1 id="logo">TeamDNA</h1>
     <nav class="navbar"><ul>
-      <!--  <li><a class="navbar-submit" href="{{ redirect }}">Submit Meetings</a></li>   -->
+      {% if current_user.is_authenticated %}<li><a class="navbar-logout" href="{{ url_for('logout') }}">Logout</a></li>{% endif %}
+      {% if current_user.is_authenticated %}<li><a class="navbar-account" href="{{ url_for('account') }}">Account</a></li>{% endif %}
+      {% if current_user.is_authenticated %}<li><a class="navbar-submit" href="{{ redirect }}">Submit Meetings</a></li>{% endif %}
       <li><a class="navbar-home" href="{{ url_for('home')}}">Home</a></li>
     </ul></nav>
     <div class="container">
