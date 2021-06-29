@@ -1,9 +1,9 @@
 import os
 from dotenv import dotenv_values
 import requests
-# import atexit
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_heroku import Heroku
 from base64 import b64encode
 from datetime import date, datetime, timedelta
@@ -11,8 +11,8 @@ import urllib.request
 import urllib.parse
 from collections import defaultdict
 from werkzeug.security import generate_password_hash, check_password_hash
-# from apscheduler.schedulers.background import BackgroundScheduler
-
+from flask_login import LoginManager, login_user, login_required, UserMixin, logout_user
+import igraph
 config = dotenv_values(".env")
 
 """
@@ -29,7 +29,7 @@ SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
 SECRET_KEY = "example"
-REDIRECT = "http://9effec85e18c.ngrok.io"
+REDIRECT = "http://727a31eb9224.ngrok.io"
 OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
 SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
@@ -38,11 +38,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 heroku = Heroku(app)
 db = SQLAlchemy(app)
+db.init_app(app)
+migrate = Migrate(app, db)
+login_manager = LoginManager()
+login_manager.init_app(app)
 app.secret_key = SECRET_KEY
+login_manager.login_view = 'sign_in'""""""
 
-# DATABASE #
 
-class User(db.Model):
+# MODELS #
+
+class User(db.Model, UserMixin):
     __tablename__ = "users"
 
     # columns
@@ -324,6 +330,43 @@ def parse_transcript(transcript):
     # print(p_transcript)
     return p_transcript
 
+def meetings_compilation(given_uuids, meetings_dict):
+    """
+    Inputs: 
+        given_uuids -- a list of uuids collected from dashboard inputs 
+        meetings_dict -- dictionary of meeting information 
+    Returns:
+        transcript_collection -- a list of trascripts form selected meetings formatted so that 
+        it can be inputted into any analysis function 
+    """
+    # list of p_transcript blocks, no seperation between uuids
+    # will be formatted so that it can be inputted as "transcript_list" in analysis functions
+    transcript_collection = []
+    for meeting in meetings_dict:
+        for uuid in meetings_dict[meeting].keys():
+            if uuid in given_uuids:
+                # add to t_list
+                for transcript in meetings_dict[meeting][uuid]["transcripts"]:
+                    transcript_instance = transcript
+                    transcript_collection.append(transcript)
+
+    return transcript_collection
+
+# def get_graph(given_uuids, meetings_dict):
+    """
+    # create graph 
+    g = Graph(directed=True)
+    # find nodes 
+    for meeting in meetings_dict:
+        for uuid in meetings_dict[meeting].keys():
+            if uuid in given_uuids:
+                for participant in meetings_dict[meeting][uuid][participants]:
+                    g.add_vertices(1)
+                    i = len(g.vs) - 1
+                    g.vs[i]["name"]= meetings_dict[meeting][uuid][participants][name]
+
+    """
+
 def speech_instances(transcript_list):
     """
     """
@@ -413,6 +456,24 @@ def speech_durations(transcript_list):
 
     return durations, distribution
 
+# FLASK GLOBALS #
+@app.context_processor
+def inject_redirect_url():
+    return dict(redirect=OAUTH)
+
+
+# LOGIN MANAGER #
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    must take unicode user id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user:
+        return user
+    else:
+        return None
+
 
 # ROUTING #
 
@@ -430,7 +491,6 @@ def home():
 def sign_up():
     return render_template("sign-up.html")
 
-
 @app.route("/sign-up", methods=["POST"])
 def sign_up_submitted():
     if request.method == "POST":
@@ -447,13 +507,14 @@ def sign_up_submitted():
         db.session.add(new_user)
         db.session.commit()
 
-        user_data = User.query.all()
-        return render_template("sign-up-success.html", user_data = user_data)
+        login_user(User.query.filter_by(email=email).first(), force=True)
+
+        return render_template("sign-up-success.html")
     return render_template("sign-up.html")
 
-@app.route("/test-sign-up")
-def test_sign_up():
-    return render_template("sign-up-success.html", redirect=OAUTH)
+# @app.route("/test-sign-up")
+# def test_sign_up():
+#     return render_template("sign-up-success.html", redirect=OAUTH)
 
 @app.route("/sign-in")
 def sign_in():
@@ -466,27 +527,47 @@ def sign_in_submitted():
     password_entered = info_entered["password"]
     user = User.query.filter_by(email=email_entered).first()
     if user is not None and check_password_hash(user.password_hash, password_entered):
-        user_data = user
+        login_user(user, force=True)
 
-    return render_template("sign-in-success.html", user=user_data, redirect=OAUTH)
+    return render_template("sign-in-success.html")
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+@app.route('/account')
+@login_required
+def account():
+
+    return render_template("account.html")
 
 @app.route("/", methods=["GET"])
+@login_required
 def submit():
     # app will fail if user has not authenticated OAuth extension
-    auth_code = request.args['code']
+    try:
+        auth_code = request.args['code']
+    except:
+        return redirect(OAUTH)
     print("Authorization code: " + auth_code)
 
-    access_token, r_token = get_access_token(auth_code)
+    try:
+        access_token, r_token = get_access_token(auth_code)
+    except:
+        return redirect(OAUTH)
     print("Access token: " + access_token)
     print("Refresh token: " + r_token)
 
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    return render_template("submit.html", redirect=OAUTH)
+    return render_template("submit.html")
 
 
 @app.route("/submitted", methods=["POST"])
+@login_required
 def submit_post():
     if request.method == "POST":
         result = request.form
@@ -546,7 +627,7 @@ def submit_post():
                 print("Participants:")
                 print(meeting_vals["participants"])
         """
-        return render_template("submit.html", meetings = meetings_dict, redirect=OAUTH)
+        return render_template("submit.html", meetings = meetings_dict)
 
 @app.route('/test')
 def submit_test():
