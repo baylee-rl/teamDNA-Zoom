@@ -31,8 +31,38 @@ input:focus {
     border-bottom: 1px solid #2D8CFF;
 }
 
-input#password {
-    font-family: Arial;
+input#email {
+    color: gray;
+    margin-bottom: 0vh;
+}
+
+input[type=submit] {
+    width: 40%;
+    height: 1.8em;
+    border: none;
+    border-radius: 20px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 2.5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+input[type=submit]:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+small {
+    font-style: italic;
+    color: gray;
+    margin-left: 0.2vw;
 }
 
 div#password-container {
@@ -42,9 +72,34 @@ div#password-container {
     flex-wrap: nowrap;
 }
 
+div#check-pass {
+    display: flex;
+    width: 100%;
+    font-size: small;
+    font-family: "Ubuntu";
+    font-weight: 300;
+    margin-top: -1.2vh;
+    margin-bottom: 1vh;
+}
+
+input[type=checkbox] {
+    margin-top: 1.2vh;
+    margin-left: 0.4vw;
+    width: 3%;
+}
+
 svg {
     transform: translate(-1vw, -0.3vh);
     cursor: pointer;
+}
+
+h2 {
+    font-family: "Ubuntu";
+    text-align: center;
+    font-size: xx-large;
+    letter-spacing: 0.5vw;
+    color: #2D8CFF;
+    margin: 0;
 }
 
 h3 {
