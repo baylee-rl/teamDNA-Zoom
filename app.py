@@ -1,10 +1,11 @@
 import os
 from dotenv import dotenv_values
 import requests
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, render_template, request, session, redirect, url_for, json
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_heroku import Heroku
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField
+from wtforms.validators import InputRequired, Length, Email, EqualTo
 from base64 import b64encode
 from datetime import date, datetime, timedelta
 import urllib.request
@@ -29,21 +30,19 @@ SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
 SECRET_KEY = "example"
-REDIRECT = "http://727a31eb9224.ngrok.io"
+REDIRECT = "http://0eda4431fdc5.ngrok.io"
 OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
 SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
-heroku = Heroku(app)
 db = SQLAlchemy(app)
 db.init_app(app)
-migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 app.secret_key = SECRET_KEY
-login_manager.login_view = 'sign_in'""""""
+login_manager.login_view = 'sign_in'
 
 
 # MODELS #
@@ -64,6 +63,19 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password_hash, password)
 
 
+# FORMS #
+class LoginForm(FlaskForm):
+    email = StringField('email', validators=[InputRequired(), Email(message='Invalid email')])
+    password = PasswordField('password', validators=[InputRequired(), Length(min=8, max=30)])   
+    remember = BooleanField('remember me')
+
+class RegisterForm(FlaskForm):
+    email = StringField('email', validators=[InputRequired()])
+    password = PasswordField('password', validators=[InputRequired()])   
+
+class PasswordForm(FlaskForm):
+    password = PasswordField('New Password', validators=[InputRequired(), Length(min=8, max=30), EqualTo('confirm', 'Passwords must match')])
+    confirm = PasswordField('Confirm New Password')
 
 # FUNCTIONS #
 
@@ -352,18 +364,23 @@ def meetings_compilation(given_uuids, meetings_dict):
 
     return transcript_collection
 
-# def get_graph(given_uuids, meetings_dict):
+# def get_graph(transcript_list):
     """
-    # create graph 
-    g = Graph(directed=True)
-    # find nodes 
-    for meeting in meetings_dict:
-        for uuid in meetings_dict[meeting].keys():
-            if uuid in given_uuids:
-                for participant in meetings_dict[meeting][uuid][participants]:
-                    g.add_vertices(1)
-                    i = len(g.vs) - 1
-                    g.vs[i]["name"]= meetings_dict[meeting][uuid][participants][name]
+    # create adjacency matrix as dict
+    ad_mat = {}
+    for p_transcript in transcript_list:
+        for block in range(len(p_transcript)-1):
+            if p_transcript[block][2] not in ad_mat:
+                ad_mat[p_transcript[block][2]] = {}
+            if p_transcript[block + 1][2] not in ad_mat[p_transcript[block][2]]:
+                # initialize one turn 
+                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] = 1
+            else: 
+                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] += 1
+                
+    # recreate the matrix as list of list 
+    # use igraph.Graph.Adjacency for adjacency --> graph     Weighted!!!!
+    # rename nodes from dict indexes/names 
 
     """
 
@@ -487,16 +504,12 @@ def example():
 def home():
     return render_template("home.html")
 
-@app.route("/sign-up")
+@app.route("/sign-up", methods=["GET", "POST"])
 def sign_up():
-    return render_template("sign-up.html")
-
-@app.route("/sign-up", methods=["POST"])
-def sign_up_submitted():
-    if request.method == "POST":
-        user_info = request.form
-        email = user_info["email"]
-        password = user_info["password"]
+    form = RegisterForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
         password_hash = generate_password_hash(password)
 
         other_user = User.query.filter_by(email=email).first()
@@ -510,26 +523,20 @@ def sign_up_submitted():
         login_user(User.query.filter_by(email=email).first(), force=True)
 
         return render_template("sign-up-success.html")
-    return render_template("sign-up.html")
+    return render_template("sign-up.html", form=form)
 
-# @app.route("/test-sign-up")
-# def test_sign_up():
-#     return render_template("sign-up-success.html", redirect=OAUTH)
-
-@app.route("/sign-in")
+@app.route("/sign-in", methods=["GET", "POST"])
 def sign_in():
-    return render_template("sign-in.html")
-
-@app.route("/sign-in", methods=["POST"])
-def sign_in_submitted():
-    info_entered = request.form
-    email_entered = info_entered["email"]
-    password_entered = info_entered["password"]
-    user = User.query.filter_by(email=email_entered).first()
-    if user is not None and check_password_hash(user.password_hash, password_entered):
-        login_user(user, force=True)
-
-    return render_template("sign-in-success.html")
+    form = LoginForm()
+    if form.validate_on_submit():
+        email_entered = form.email.data
+        password_entered = form.password.data
+        remember=form.remember.data
+        user = User.query.filter_by(email=email_entered).first()
+        if user is not None and check_password_hash(user.password_hash, password_entered):
+            login_user(user, force=True, remember=remember)
+            return render_template("sign-in-success.html")
+    return render_template("sign-in.html", form=form)
 
 @app.route('/logout')
 @login_required
@@ -537,11 +544,16 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/account')
+@app.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
-
-    return render_template("account.html")
+    form = PasswordForm()
+    if form.validate_on_submit():
+        user = current_user
+        user.password_hash = generate_password_hash(form.password.data)
+        db.session.commit()
+        return render_template("account.html", form=form, did_update=True)
+    return render_template("account.html", form=form)
 
 @app.route("/", methods=["GET"])
 @login_required

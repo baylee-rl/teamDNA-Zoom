@@ -42,7 +42,18 @@ input:focus {
 }
 
 label {
-    margin-left: 0.5vw;
+    margin-left: 0vw;
+    text-transform: capitalize;
+}
+
+div#check-pass, div#remember {
+    display: flex;
+    width: 100%;
+    font-size: small;
+    font-family: "Ubuntu";
+    font-weight: 300;
+    margin-top: -1.2vh;
+    margin-bottom: 0vh;
 }
 
 div#password-container {
@@ -70,6 +81,14 @@ input[type=submit]:hover {
     background-color: #BCE4F0;
     color: #1A5F89;
     cursor: pointer;
+}
+
+
+input[type=checkbox] {
+    margin-top: 1.2vh;
+    margin-left: 0.4vw;
+    width: 3%;
+    transform: translate(0vw, -0.3vh);
 }
 
 button {

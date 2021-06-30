@@ -13,14 +13,35 @@
 {% block content %}
 <div id="sign-up">
     <h1>Welcome!</h1>
-    <form action="{{ url_for('sign_in_submitted') }}" method="post">
-        <label for="email">Email</label><br>
-        <input type="text" id="email" name="email"><br>
-        <label for="password">Password</label><br>
-        <input type="text" id="password" name="password"><br>
+    <form action="{{ url_for('sign_in') }}" method="post">
+        {{ form.csrf_token }}
+        {{ form.email.label }}
+        {{ form.email }}
+        {{ form.password.label }}
+        {{ form.password }}
+        <div id="check-pass">
+            Show/Hide Password <input type="checkbox" onclick="showPassword()">
+        </div>
+        <div id='remember'>
+            Remember me? {{ form.remember }}
+        </div>
         <input type="submit" value="Sign In">
     <form>
 <div>
 
 
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        function showPassword() {
+            var x = document.getElementById("password");
+            console.log(x);
+            if (x.type === "password") {
+                x.type = "text";
+            } else {
+                x.type = "password";
+            }
+        }
+    </script>
 {% endblock %}
