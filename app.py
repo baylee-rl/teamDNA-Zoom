@@ -14,7 +14,7 @@ from collections import defaultdict
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, UserMixin, logout_user
 import igraph
-config = dotenv_values(".env")
+
 
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
@@ -23,6 +23,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 REDIRECT = "https://teamdna-zoom.herokuapp.com/"
 ***REMOVED***
 SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -491,7 +492,7 @@ def example():
 """
 
 @app.route("/")
-def redirect():
+def home_redirect():
     return redirect(url_for('home'))
 
 @app.route("/home")
