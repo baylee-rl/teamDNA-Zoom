@@ -20,8 +20,8 @@ import igraph
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
 SECRET_KEY = os.environ.get('SECRET_KEY')
-REDIRECT = "https://teamdna-zoom.herokuapp.com/"
-OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
+REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
+OAUTH = "https://zoom.us/oauth/authorize?respone_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
 
