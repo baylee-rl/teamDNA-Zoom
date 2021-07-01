@@ -22,8 +22,7 @@ CLIENT_SEC = os.environ.get('CLIENT_SECRET')
 SECRET_KEY = os.environ.get('SECRET_KEY')
 REDIRECT = "https://teamdna-zoom.herokuapp.com/"
 OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
-
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
