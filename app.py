@@ -16,23 +16,15 @@ from flask_login import LoginManager, login_user, login_required, UserMixin, log
 import igraph
 config = dotenv_values(".env")
 
-"""
+
 set the following in the heroku deployment config
 
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
 SECRET_KEY = os.environ.get('SECRET_KEY')
-REDIRECT = "http://b778df11a859.ngrok.io"  <-- this will become the final app url
+REDIRECT = "https://teamdna-zoom.herokuapp.com/" 
 ***REMOVED***
 SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL?sslmode=require')
-"""
-
-***REMOVED***
-***REMOVED***
-***REMOVED***
-REDIRECT = "http://0eda4431fdc5.ngrok.io"
-***REMOVED***
-***REMOVED***
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
