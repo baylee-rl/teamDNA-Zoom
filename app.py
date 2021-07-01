@@ -490,6 +490,10 @@ def example():
     return render_template("example.html")
 """
 
+@app.route("/")
+def redirect():
+    return redirect(url_for('home'))
+
 @app.route("/home")
 def home():
     return render_template("home.html")
@@ -545,32 +549,10 @@ def account():
         return render_template("account.html", form=form, did_update=True)
     return render_template("account.html", form=form)
 
-@app.route("/", methods=["GET"])
+@app.route("/submit", methods=["GET", "POST"])
 @login_required
 def submit():
     # app will fail if user has not authenticated OAuth extension
-    try:
-        auth_code = request.args['code']
-    except:
-        return redirect(OAUTH)
-    print("Authorization code: " + auth_code)
-
-    try:
-        access_token, r_token = get_access_token(auth_code)
-    except:
-        return redirect(OAUTH)
-    print("Access token: " + access_token)
-    print("Refresh token: " + r_token)
-
-    session['a_token'] = access_token
-    session['r_token'] = r_token
-
-    return render_template("submit.html")
-
-
-@app.route("/submitted", methods=["POST"])
-@login_required
-def submit_post():
     if request.method == "POST":
         result = request.form
         meeting_ids = result["meetid"]
@@ -630,6 +612,24 @@ def submit_post():
                 print(meeting_vals["participants"])
         """
         return render_template("submit.html", meetings = meetings_dict)
+    try:
+        auth_code = request.args['code']
+    except:
+        return redirect(OAUTH)
+    print("Authorization code: " + auth_code)
+
+    try:
+        access_token, r_token = get_access_token(auth_code)
+    except:
+        return redirect(OAUTH)
+    print("Access token: " + access_token)
+    print("Refresh token: " + r_token)
+
+    session['a_token'] = access_token
+    session['r_token'] = r_token
+
+    return render_template("submit.html")
+    
 
 @app.route('/test')
 def submit_test():
