@@ -1,5 +1,4 @@
 alembic==1.6.5
-APScheduler==3.7.0
 attrs==19.3.0
 Automat==0.8.0
 backcall==0.2.0
@@ -7,7 +6,6 @@ blinker==1.4
 cachelib==0.1.1
 certifi==2019.11.28
 chardet==3.0.4
-cliapp==1.20180812.1
 click==8.0.1
 cloud-init==20.2
 cmdtest==0.32+git
