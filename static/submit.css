@@ -1,6 +1,5 @@
 body {
     background-color: white;
-
     text-align: center;
 }
 
@@ -12,13 +11,12 @@ div {
 }
 
 form {
-    display: flex;
-    flex-direction: column;
-    width: 40%;
-    align-items: center;
-    font-family: 'Montserrat','Trebuchet MS', sans-serif;
-    font-weight: 300;
-    font-size: larger;
+    width: 30%;
+    text-align: left;
+    font-family: "Montserrat";
+    font-size: medium;
+    line-height: 3.5vh;
+    color: rgb(95, 95, 95);
 }
 
 input {
@@ -28,7 +26,7 @@ input {
     height: 1em;
     font-family: "Montserrat", sans-serif;
     font-size: 15px;
-    margin-bottom: 1.vh;
+    margin-bottom: 1.5vh;
 }
 
 input:focus {
@@ -36,11 +34,9 @@ input:focus {
     border-bottom: 1px solid #2D8CFF;
 }
 
-
 label {
-    width: 100%;
-    text-align: left;
-    margin-bottom: 1vh;
+    margin-left: 0vw;
+    text-transform: capitalize;
 }
 
 h5 {
@@ -57,10 +53,14 @@ h6 {
 }
 
 p {
-    font-size: medium;
+    font-size: medium;;
     width: 100%;
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
     font-weight: 300;
+}
+
+form p {
+    text-align: center;
 }
 
 p#intro {
@@ -71,30 +71,32 @@ svg {
     margin-left: -1.25vw;
 }
 
-
-div#form {
-    width: 40%;
-    text-align: left;
-    font-size: large;
+small {
+    margin-left: 0.5vw;
+    color: red;
 }
 
-#submit {
-    font-family: 'Ubuntu', sans-serif;
-    color: #1A5F89;
-    font-size: 1.7vh;
-    font-weight: 500;
-    background-color: #BCE4F0;
+
+input[type=submit] {
+    width: 45%;
+    height: 1.8em;
     border: none;
-    border-radius: 15px;
-    width: 20%;
-    height: 1.9em;
-    transition: all 0.5s ease;
-    text-align: center;
-}
-
-#submit:hover {
+    border-radius: 20px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 18px;
+    font-weight: 500;
     background-color: #2D8CFF;
     color: white;
+    margin-top: 2.5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+input[type=submit]:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
     cursor: pointer;
 }
 

@@ -15,9 +15,9 @@
     <h1>Welcome!</h1>
     <form action="{{ url_for('sign_in') }}" method="post">
         {{ form.csrf_token }}
-        {{ form.email.label }}
+        {{ form.email.label }}{% if error == 'wrong-email': %}<small>No user with this email was found.</small>{% endif %}
         {{ form.email }}
-        {{ form.password.label }}
+        {{ form.password.label }}{% if error == 'wrong-pass': %}<small>Password incorrect.</small>{% endif %}
         {{ form.password }}
         <div id="check-pass">
             Show/Hide Password <input type="checkbox" onclick="showPassword()">

@@ -11,6 +11,8 @@
 {% block title %}Submit a Meeting{% endblock %}
 
 {% block content %}
+
+<!--
     <p id="intro">This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID, with no spaces, below.</p>
     <br>
     <form action="{{ url_for('submit') }}">
@@ -24,6 +26,8 @@
         <input type="submit" id="submit" value="Submit">
         {% if meetings %}<p>Submission successful!</p>{% endif %}
     </form>
+
+-->
     <div id="dashboard">
         <!-- Dashboard here -->
         {% for meeting in meetings: %}
@@ -56,6 +60,10 @@
                       </svg>
                         {{ meetings[meeting][uuid]["duration"] }} min.
                     </p>
+                    <div id="checkboxes">
+                        <input type="checkbox" id="include" name="include">
+                        <label for="include">Include?</label>
+                      </div>
                 </div>
                 {% endfor %}
             </div>
