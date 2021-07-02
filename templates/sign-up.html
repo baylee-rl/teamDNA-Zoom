@@ -15,15 +15,14 @@
     <h1>Welcome!</h1>
     <form action="{{ url_for('sign_up') }}" method="post">
         {{ form.csrf_token }}
-        {{ form.email.label }}{% if duplicate_email: %}<small>Someone has already used that email.</small>{% endif %}
+        {{ form.email.label }}{% if duplicate_email: %}<small>Someone has already used that email.</small>{% endif %}{% for error in form.email.errors %}<small>{{ error }}</small>{% endfor %}
         {{ form.email }}
-        {% for error in form.email.errors %}<small>{{ error }}</small>{% endfor %}
-        {{ form.password.label }}<small style="color: gray;">8 characters min.</small>
+        {{ form.password.label }}<small style="color: gray;">8 characters min.</small>{% for error in form.password.errors %}<small>{{ error }}</small>{% endfor %}
         {{ form.password }}
         <div id="check-pass">
             Show/Hide Password <input type="checkbox" onclick="showPassword()">
         </div>
-        {% for error in form.password.errors %}<small>{{ error }}</small>{% endfor %}
+        
         <input type="submit" value="Create Account">
     </form>
 </div>

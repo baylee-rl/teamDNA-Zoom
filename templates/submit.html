@@ -11,15 +11,14 @@
 {% block title %}Submit a Meeting{% endblock %}
 
 {% block content %}
-    <p id="intro">This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID, with no spaces, below.</p>
+    <p id="intro">This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID below.</p>
     <br>
-    <form action="{{ url_for('submit') }}">
-        <div id="form">
-            <label for="meetid">Meeting ID</label>
-            <input type="text" name="meetid"><br>
-            <label for="recipient">Recipient Email</label>
-            <input type="text" name="recipient">
-        </div>
+    <form action="{{ url_for('submit') }}" method="POST">
+        {{ form.csrf_token }}
+        Meeting ID: 
+        {{ form.meetid }}
+        Recipient User's Email: {% for error in form.recipient.errors %}<small>{{ error }}</small>{% endfor %}{% if msg == 'no-user': %}<small>No user with this email was found.</small>{% endif %}{% if msg == 'not-instructor': %}<small>That user does not have instructor privileges.</small>{% endif %}
+        {{ form.recipient }}
         <br>
         <input type="submit" id="submit" value="Submit">
         {% if meetings %}<p>Submission successful!</p>{% endif %}
