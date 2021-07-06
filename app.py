@@ -29,6 +29,8 @@ uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
 
 
+
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
@@ -63,8 +65,14 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     role = db.Column(db.String(20), nullable=False)
-    meetings = db.relationship('Meeting', secondary=Permissions, back_populates='users')
+    pull_meetings = db.relationship('Meeting', secondary=Permissions, back_populates='users')
+    sub_meetings = db.relationship('Meeting', back_populates="host")
 
+    def __init__(self, email, password_hash, role):
+        self.email = email
+        self.password_hash = password_hash
+        self.role = role
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
@@ -76,9 +84,15 @@ class Meeting(db.Model):
 
     id = db.Column(db.String(30), primary_key=True)
     topic = db.Column(db.String(120))
-    host_id = db.Column(db.String(30))
+    host_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    host = db.relationship("User", back_populates="sub_meetings")
     meeting_insts = db.relationship("Meeting_Inst", back_populates="meeting")
-    users = db.relationship('User', secondary=Permissions, back_populates='meetings')
+    users = db.relationship('User', secondary=Permissions, back_populates='pull_meetings')
+
+    def __init__(self, id, topic, host_id):
+        self.id = id
+        self.topic = topic
+        self.host_id = host_id
 
 class Meeting_Inst(db.Model):
     __tablename__ = "meeting_insts"
@@ -86,8 +100,16 @@ class Meeting_Inst(db.Model):
     uuid = db.Column(db.String(30), primary_key=True)
     meeting_id = db.Column(db.String(30), db.ForeignKey('meetings.id'))
     meeting = db.relationship("Meeting", back_populates="meeting_insts")
+    duration = db.Column(db.Integer)
+    start_time = db.Column(db.String(30))    
     participants = db.relationship("Participant", secondary=MeetingInstParticipants)
     transcripts = db.relationship("Transcript")
+
+    def __init__(self, uuid, meeting_id, duration, start_time):
+        self.uuid = uuid
+        self.meeting_id = meeting_id
+        self.duration = duration
+        self.start_time = start_time
 
 class Participant(db.Model):
     __tablename__ = "participants"
@@ -95,24 +117,38 @@ class Participant(db.Model):
     id = db.Column(db.String(30), primary_key=True)
     name = db.Column(db.String(30))
     email = db.Column(db.String(120))
+    meeting_insts = db.relationship('Meeting_Inst', secondary=MeetingInstParticipants, back_populates='participants')
+
+    def __init__(self, id, name, email):
+        self.id = id
+        self.name = name
+        self.email = email
 
 class Transcript(db.Model):
     __tablename__ = 'transcripts'
 
-    id = db.Column(db.String(30), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     uuid = db.Column(db.String(30), db.ForeignKey('meeting_insts.uuid'))
-    transcript_blocks = db.relationship("Transcript_Block")
+    transcript = db.Column(db.Text)
+    transcript_blocks = db.relationship("Transcript_Block", order_by='Transcript_Block.sequence')
+
+    def __init__(self, uuid, transcript):
+        self.uuid = uuid
+        self.transcript = transcript
 
 class Transcript_Block(db.Model):
     __tablename__ = "transcript_blocks"
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    transcript_id = db.Column(db.String(30), db.ForeignKey('transcripts.id'))
+    transcript_id = db.Column(db.Integer, db.ForeignKey('transcripts.id'))
     sequence = db.Column(db.Integer)
     starttime = db.Column(postgresql.INTERVAL)
     endtime = db.Column(postgresql.INTERVAL)
     speaker = db.Column(db.String(30))
-    speech = db.Column(db.String(50))
+    speech = db.Column(db.String(100))
+
+    def __init__(self, transcript_id):
+        self.transcript_id = transcript_id
 
 with app.app_context():
     db.create_all()
@@ -147,8 +183,11 @@ def api_refresh_check(response_data):
     did_refresh = False
     try:
         if response_data["code"] == 124:
-            refresh_token()
-            did_refresh = True
+            try:
+                refresh_token()
+                did_refresh = True
+            except:
+                return None
         else:
             pass
     except:
@@ -236,19 +275,19 @@ def refresh_token():
 
 # retrieval
 
-def get_participants(meeting_id):
+def get_participants(uuid):
     """
-    make this later. need participant info
-    zoom api: get meeting participant reports
+    Given a UUID, retrieves the participants list from Zoom and adds to DB
+    Also returns a list of participant names
     """
     authorization = "Bearer " + session['a_token']
     headers = {"Authorization": authorization}
-    print(meeting_id)
-    if (meeting_id[0] == "/") or ("//" in meeting_id):
+    print(uuid)
+    if (uuid[0] == "/") or ("//" in uuid):
         print("Encoding...")
-        meeting_id = urllib.parse.quote(meeting_id, safe='')
-        meeting_id = urllib.parse.quote(meeting_id, safe='')
-    url = "https://api.zoom.us/v2/past_meetings/" + meeting_id + "/participants"
+        uuid = urllib.parse.quote(uuid, safe='')
+        uuid = urllib.parse.quote(uuid, safe='')
+    url = "https://api.zoom.us/v2/past_meetings/" + uuid + "/participants"
     response = requests.get(url, headers=headers)
     participants_data = response.json()
     did_refresh = api_refresh_check(participants_data)
@@ -261,18 +300,27 @@ def get_participants(meeting_id):
     if "code" in participants_data.keys():
         if participants_data["code"] == 3001:
             return False
-    # print(participants_data)
-    new_participants = {}
+
+    new_participants = []
     for participant in participants_data['participants']:
         if participant["name"] in new_participants.keys() and participant["user_email"] == '':
             continue
-        new_participants[participant["name"]] = participant["user_email"]
+        id = participant["id"]
+        name = participant["name"]
+        email = participant["user_email"]
+        new_participants.append(name)
+
+        #add participants to meeting inst row in DB
+        meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+        if len(meeting_inst.participants) == 0:
+            meeting_inst.participants.append(Participant(id, name, email))
+    db.session.commit()
     return new_participants
 
 def get_recordings(meeting_id):
     """
-    returns a list of meeting recordings given a meeting ID
-    typically called upon HOST submission
+    given a meeting ID, retrieves all information from Zoom and adds information to respective DB tables
+    returns a dictionary mapping meeting IDs to UUIDs, host_id, topic, and UUIDs map to start_time, duration, and participants (for display)
     """
     print("Using access token: " + session['a_token'])
     authorization = "Bearer " + session['a_token']
@@ -293,72 +341,93 @@ def get_recordings(meeting_id):
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         data = response.json()
+    elif did_refresh == None:
+        return None
 
     meetings = data["meetings"]
-    meetings_dict = {}
-    meetings_dict[meeting_id] = {}
+    meetings_dict = {meeting_id : {}}
+    m_data = meetings_dict[meeting_id]
+
 
     for meeting in meetings:
-        # meeting id is int from zoom
+        # finds all meeting instances matching meeting ID
         if str(meeting['id']) == meeting_id:
             topic = meeting['topic']
             host_id = meeting['host_id']
-            duration = meeting['duration']
+
+            m_data['topic'] = topic
+            m_data['host_id'] = host_id
+
+            #add to new meetings to meetings table
+            if Meeting.query.filter_by(id=meeting_id).first() == None:
+                new_meeting = Meeting(meeting_id, topic, host_id)
+                db.session.add(new_meeting)
+                db.session.commit()
+
             uuid = meeting['uuid']
+            m_data[uuid] = {}
+
+            duration = meeting['duration']
             timedate = meeting["start_time"]
             timedate = timedate.replace("T", " ")
             timedate = timedate.replace("Z", " GMT")
-            meetings_dict[meeting_id][uuid] = [timedate, duration]
-            if "topic" not in meetings_dict[meeting_id].keys():
-                meetings_dict[meeting_id]["topic"] = topic
-                meetings_dict[meeting_id]["host_id"] = host_id
+
+            m_data[uuid]['duration'] = duration
+            m_data[uuid]['start_time'] = timedate
+
+            # retrieve participants and add to DB
+            participants = get_participants(uuid)
+
+            m_data[uuid]['participants'] = participants
+
+            transcripts = []
             transcript_found = False
             for file in meeting['recording_files']:
                 if file["file_type"] == "TRANSCRIPT":
                     print("Transcript found")
                     transcript_found = True
-                    download_url = file["download_url"]
-                    meetings_dict[meeting_id][uuid].append(download_url)
-            if transcript_found == False:
-                del meetings_dict[meeting_id][uuid]
-                print("UUID contained no transcripts: " + uuid)
-            else:
-                print("UUID successfully added")
-    
-    # print(meetings_dict)
-    for meeting in meetings_dict:
-        for meeting_inst in meetings_dict[meeting].keys():
-            if meeting_inst == "topic" or meeting_inst == "host_id":
-                continue
-            for file in meetings_dict[meeting][meeting_inst][2:]:
-                print("Downloading...")
-                # print(file + ', ' + filename)
-                dl_url = file + "?access_token=" + session['a_token']
+                    transcripts.append(file["download_url"])
+            if transcript_found == True:
+                # add UUIDs/Meeting Insts for meetings w/ transcripts available
+                if Meeting_Inst.query.filter_by(uuid=uuid).first() == None:
+                    meeting_inst = Meeting_Inst(uuid, meeting_id, duration, timedate)
+                    db.session.add(meeting_inst)
+                    db.session.commit()
+                    print("UUID successfully added")
+                # Parse and add to DB any new transcripts
+                if Transcript.query.filter_by(uuid=uuid).all() == None:
+                    for file in transcripts:
+                        print("Downloading...")
 
-                response = requests.get(dl_url, stream=True)
-                print(response.text)
-                idx = meetings_dict[meeting][meeting_inst].index(file)
-                # print("Index: " + str(idx))
-                meetings_dict[meeting][meeting_inst][idx] = response.text
-                p_transcript = parse_transcript(response.text)
-                meetings_dict[meeting][meeting_inst][idx] = p_transcript
-            meeting_vals = meetings_dict[meeting][meeting_inst]
-            meeting_vals = { "transcripts": meeting_vals[2:], "timedate": meeting_vals[0], "duration": meeting_vals[1]}
-            meetings_dict[meeting][meeting_inst] = meeting_vals
-            # p_data = get_participants(meeting)["participants"]
-            # meetings_dict[meeting][meeting_inst]["participants"] = p_data
+                        dl_url = file + "?access_token=" + session['a_token']
+                        response = requests.get(dl_url, stream=True)
 
-    # somewhere above call get meeting participants to add more data to meetings dict please
-    # TO-DO: determine who was host and add key
+                        #add transcript to DB
+                        transcript = Transcript(uuid, response.text)
+                        db.session.add(transcript)
+                        db.session.commit()
 
-    return meetings_dict
+                        p_transcript = parse_transcript(transcript.id, response.text)
+
+                        #add parsed transcript to DB
+                        db.session.add_all(p_transcript)
+                        db.session.commit()
+
+    return 
+
+def host_retrieve():
+    """
+    """
+
+
 
 # parsing
 
-def parse_transcript(transcript):
+def parse_transcript(transcript_id, transcript):
     """
     Inputs:
         transcript, a string
+    Returns a list of Transcript_Block objects
     """
     split_transcript = transcript.split("\r\n")
     p_transcript = []
@@ -368,18 +437,18 @@ def parse_transcript(transcript):
             continue
         elif line == "WEBVTT":
             continue
-        block = []
+        block = Transcript_Block(transcript_id)
         if line == "":
             if idx == len(split_transcript) - 1 or idx == len(split_transcript) - 2:
                 continue
             # print(idx)
-            block.append(int(split_transcript[idx + 1]))
+            block.sequence = int(split_transcript[idx + 1])
             timestamp = split_transcript[idx + 2].split(" --> ")
             t1 = datetime.strptime(timestamp[0], "%H:%M:%S.%f")
             t2 = datetime.strptime(timestamp[1], "%H:%M:%S.%f")
-            timestamp[0] = timedelta(hours=t1.hour, minutes=t1.minute, seconds=t1.second)
-            timestamp[1] = timedelta(hours=t2.hour, minutes=t2.minute, seconds=t2.second)
-            block.append(tuple(timestamp))
+            block.starttime = timedelta(hours=t1.hour, minutes=t1.minute, seconds=t1.second)
+            block.endtime = timedelta(hours=t2.hour, minutes=t2.minute, seconds=t2.second)
+
             name_text = split_transcript[idx + 3].split(": ")
             if len(name_text) == 1:
                 text = split_transcript[idx + 3].split(": ")[0]
@@ -389,16 +458,15 @@ def parse_transcript(transcript):
                         break
                     else:
                         continue
-                block.append(name)
-                block.append(text)
+                block.speaker = name
+                block.speech = text
             else:
-                block.append(name_text[0])
-                block.append(name_text[1])
+                block.speaker = name_text[0]
+                block.speech = name_text[1]
             p_transcript.append(block)
         else:
             pass
-    # print("Parsed transcript as follows:")
-    # print(p_transcript)
+
     return p_transcript
 
 def meetings_compilation(given_uuids, meetings_dict):
@@ -582,7 +650,7 @@ def sign_up():
         if other_user:
             return render_template("sign-up.html", form=form, duplicate_email=True)
 
-        new_user = User(email=email, password_hash=password_hash, role="User")
+        new_user = User(email, password_hash, "User")
         db.session.add(new_user)
         db.session.commit()
 
@@ -636,7 +704,6 @@ def submit():
         # CHANGED TO ACCEPT SINGLE MEETING ID
         meeting_id = form.meetid.data
         recipient_email = form.recipient.data
-
         recipient = User.query.filter_by(email=recipient_email).first()
         if recipient is None:
             return render_template('submit.html', form=form, msg="no-user")
@@ -646,39 +713,26 @@ def submit():
         # removes whitespace if present
         meeting_id = meeting_id.replace(" ", "")
         print("Meeting ID: " + meeting_id)
-        meetings_dict = get_recordings(meeting_id)
+        try:
+            get_recordings(meeting_id)
+        except:
+            print("unable to retrieve info, redirecting")
+            return redirect(OAUTH)
+
+        if meeting_id not in [meeting.id for meeting in recipient.pull_meetings]:
+            meeting = Meeting.query.filter_by(id=meeting_id).first()
+            recipient.pull_meetings.append(meeting)
+            db.session.commit()
 
         ### may change in prod. ###
         # **moving to dashboard/instructor page only
-        for meeting in meetings_dict:
-            # print("Meeting: ")
-            # print(meetings_dict[meeting])
-            for meeting_inst in meetings_dict[meeting]:
-                if meeting_inst == "topic" or meeting_inst == "host_id":
-                    continue
-                meeting_vals = meetings_dict[meeting][meeting_inst]
-                # print("MEETING_VALS:")
-                # print(meeting_vals)
-                participants = get_participants(meeting_inst)
-                print("PARTICIPANTS:")
-                print(participants)
-                if not participants:
-                    continue
-                meeting_vals["participants"] = participants
-                t_list = meeting_vals["transcripts"]
-                meeting_vals["instances"] = speech_instances(t_list)
-                meeting_vals["durations"] = speech_durations(t_list)[0]
-                meeting_vals["distribution"] = speech_durations(t_list)[1]
-                meeting_vals["silence-breaking"] = silence_breaking(t_list)
-                # print("Meeting Recording Data:")
-                # print(meeting_vals)
-
+        """
         ### retroactively update metrics if any participant was excluded ###
-        for meeting in meetings_dict:
-            for meeting_inst in meetings_dict[meeting]:
+        for meeting in meeting_dict:
+            for meeting_inst in meeting_dict[meeting]:
                 if meeting_inst == "topic" or meeting_inst == "host_id":
                     continue
-                meeting_vals = meetings_dict[meeting][meeting_inst]
+                meeting_vals = meeting_dict[meeting][meeting_inst]
                 if "instances" not in meeting_vals.keys():
                     continue
                 instances = meeting_vals["instances"]
@@ -697,32 +751,36 @@ def submit():
                 # print(meeting_vals)
                 print("Participants:")
                 print(meeting_vals["participants"])
+        """
+        return render_template("submit.html", meetings = meeting_dict, form=form)
         
-        return render_template("submit.html", meetings = meetings_dict, form=form)
-    
-    token_found = False
 
-    # check if token already available
     try:
-        access_token, r_token = session['a_token'], session['r_token']
-        token_found = True
-    except:
-        pass
-    
-    if token_found == False:
+        auth_code = request.args['code']
         try:
-            auth_code = request.args['code']
+            if session['auth_code'] == auth_code:
+                access_token = session['access_token']
+                r_token = session['r_token']
+                print("prev tokens retrieved")
+            else:
+                session['auth_code'] = auth_code
+                access_token, r_token = get_access_token(auth_code)
+                print("fresh tokens retrieved")
         except:
-            print('redirect1')
-            return redirect(OAUTH)
-        print("Authorization code: " + auth_code)
+            session['auth_code'] = auth_code
+            access_token, r_token = get_access_token(auth_code)
+            print("fresh tokens retrieved")
+    except:
+        print('no code or tokens, redirecting')
+        return redirect(OAUTH)
 
-        
-        print("Access token: " + access_token)
-        print("Refresh token: " + r_token)
+    print("Authorization code: " + auth_code)
+    
+    print("Access token: " + access_token)
+    print("Refresh token: " + r_token)
 
-        session['a_token'] = access_token
-        session['r_token'] = r_token
+    session['a_token'] = access_token
+    session['r_token'] = r_token
 
     return render_template("submit.html", form=form)
 
