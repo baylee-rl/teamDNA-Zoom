@@ -44,10 +44,10 @@ h5 {
 }
 
 h6 {
-    font-size: 1.9vh;
+    font-size: 1.8vh;
     font-family: "Ubuntu", sans-serif;
     font-weight: 500;
-    margin: 1vh 0vw 0vh 0vw;
+    margin: 0.5vh 0vw 0vh 0vw;
     color: #1A5F89;
     margin-left: -2vw;
 }
@@ -57,6 +57,7 @@ p {
     width: 100%;
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
     font-weight: 300;
+    margin-bottom: 0.5vh;
 }
 
 form p {
@@ -69,6 +70,7 @@ p#intro {
 
 svg {
     margin-left: -1.25vw;
+    margin-right: 0.3vw;
 }
 
 small {
@@ -101,23 +103,27 @@ input[type=submit]:hover {
 }
 
 div#dashboard {
-    width: 75%;
+    width: 66%;
     display: flex;
     flex-direction: column;
     padding: 1vh 3vw;
     padding-top: 1vh;
+    margin-top: 1vh;
 }
 
 .meeting-group {
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
+    border-radius: 20px;
+    box-shadow: 0 4px 8px 0 lightgray, 0 6px 20px 0 lightgray;
+    padding: 0vh 2vw;
 }
 
 .meeting-header {
     width: 100%;
-    margin-bottom: 1.5vh;
-    border-top: 1px solid rgb(182, 182, 182);
-    border-bottom: 1px solid rgb(182, 182, 182);
+    height: 4em;
+    margin-bottom: 0vh;
     font-weight: 300;
+    font-size: large;
 }
 
 div.meetings {
@@ -133,17 +139,131 @@ div.meetings {
 .meeting-box {
     background-color: #BCE4F0;
     width: 18%;
-    height: 18vh;
+    height: 17vh;
     border-radius: 15px;
     font-size: 1.6vh;
     color: #0D3045;
     font-weight: 400;
-    padding: 0.25vh 0.5vw;
+    padding-top: 1.5vh;
+    padding-bottom: 0vh;
     padding-left: 2.5vw;
+    padding-right: 0.5vw;
     margin-top: 0.5vh;
     margin-bottom: 0.5vh;
     text-align: left;
 }
+
+.small-checkbox {
+    display: block;
+    position: relative;
+    top: 15%;
+    left: 41%;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.big-checkbox {
+    display: block;
+    position: relative;
+    bottom: 62%;
+    left: 46%;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    font-size: smaller;
+}
+
+.small-checkbox input, .big-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* Create a custom checkbox */
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 15px;
+    width: 15px;
+    background-color: white;
+}
+
+.big-checkbox .checkmark {
+    top: 14%;
+    left: 120%;
+    height: 14px;
+    width: 14px;
+    border: 1px solid lightgray;
+}
+
+/* On mouse-over, add a grey background color */
+.small-checkbox:hover input ~ .checkmark {
+    background-color: #eee;
+}
+  
+.big-checkbox:hover input ~ .checkmark {
+    background-color: #eee;
+}
+
+/* When the checkbox is checked, add a blue background */
+.small-checkbox input:checked ~ .checkmark {
+    background-color: #2D8CFF;
+}
+
+.big-checkbox input:checked ~ .checkmark {
+    background-color: #2D8CFF;
+    border: 1px solid #2D8CFF;
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+/* Show the checkmark when checked */
+.small-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.big-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+/* Style the checkmark/indicator */
+.small-checkbox .checkmark:after {
+    left: 5px;
+    top: 2px;
+    width: 2px;
+    height: 7px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.big-checkbox .checkmark:after {
+    left: 4px;
+    top: 1px;
+    width: 2px;
+    height: 7px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
 
 @media screen and (max-width: 1024px) {
     form {

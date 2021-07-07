@@ -1,0 +1,26 @@
+table {
+    font-family: "Open Sans", sans-serif;
+    border-collapse: collapse;
+    width: 50%;
+    margin-top: 5vh;
+    margin-left: auto;
+    margin-right: auto;
+    border: 1px solid #ddd;
+    table-layout: fixed;
+}
+
+caption {
+    font-weight: 500;
+    margin-bottom: 1vh;
+}
+  
+td, th {
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    padding: 8px;
+}
+
+
+tr:nth-child(even) {
+    background-color: #eee;
+}
