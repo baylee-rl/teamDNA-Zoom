@@ -63,9 +63,25 @@ h1#logo {
 h1 {
     font-family: "Ubuntu", sans-serif;
     text-align: center;
-    margin-top: 1vh;
+    margin-top: 2vh;
     margin-bottom: 3vh;
     cursor: default;
+}
+
+@media screen and (max-width: 1024px) {
+    h1#logo {
+        font-size: x-large;
+        margin-top: 3vh;
+    }
+    
+}
+
+@media screen and (max-width: 768px) {
+    
+}
+
+@media screen and (max-width: 480px) {
+
 }
 
 /* end navbar */

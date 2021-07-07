@@ -8,7 +8,7 @@
   
 {% endblock %}
 
-{% block title %}Submit a Meeting{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
 
@@ -34,40 +34,58 @@
         <div class="meeting-group">
             <div class="meeting-header">
                 <h5>ID: {{ meeting }} | {{ meetings[meeting]["topic"] }}</h5>
+                <label class="big-checkbox">Select All
+                    <input type="checkbox" onClick="selectAll(this)">
+                    <span class="checkmark"></span>
+                </label>
             </div>
             <div class="meetings">
-                {% for uuid in meetings[meeting] if uuid not in ['host_id', 'topic']: %}
+                {% for uuid in meetings[meeting] if uuid not in ['host', 'topic']: %}
 
                 <div class="meeting-box">
-                    <h6>{{ meetings[meeting][uuid]["timedate"] }}</h6>
+                    <h6>{{ meetings[meeting][uuid]["start_time"] }}</h6>
                     <p><svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="#1A5F89" class="bi bi-person-fill" viewBox="0 0 15 15" style="transform: translate(-2px, 4px)">
                         <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
                       </svg>
-                        {% for participant in meetings[meeting][uuid]["participants"] %}
-                            {% if loop.index == 5 %}
-                                 ...
-                            {% elif loop.index > 5 %}
+                        {% if meetings[meeting][uuid]["participants"]|length == 0 %}
+                            No participants found
+                        {% else %}
+                            {% for participant in meetings[meeting][uuid]["participants"] %}
+                                {% if loop.index == 5 %}
+                                    ...
+                                {% elif loop.index > 5 %}
 
-                            {% elif loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
-                                {{ participant }}
-                            {% else %}
-                                {{ participant }}, 
-                            {% endif %}
-                        {% endfor %}
+                                {% elif loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
+                                    {{ participant }}
+                                {% else %}
+                                    {{ participant }}, 
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                     </p>
                     <p id="durations"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#1A5F89" class="bi bi-clock-fill" viewBox="0 0 17 17" style="transform: translate(-3px, 5px)">
                         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
                       </svg>
                         {{ meetings[meeting][uuid]["duration"] }} min.
                     </p>
-                    <div id="checkboxes">
-                        <input type="checkbox" id="include" name="include">
-                        <label for="include">Include?</label>
-                      </div>
+                    <label class="small-checkbox">
+                        <input type="checkbox" class="checkbox">
+                        <span class="checkmark"></span>
+                    </label>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endfor %}
     </div>
+{% endblock %}
+
+{% block javascript %}
+    <script>
+        function selectAll(source) {
+            checkboxes = document.getElementsByClassName('checkbox');
+            for(var i in checkboxes)
+                checkboxes[i].checked = source.checked;
+        }
+    </script>
 {% endblock %}

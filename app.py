@@ -18,7 +18,6 @@ from flask_login import LoginManager, login_user, login_required, UserMixin, log
 import igraph
 config = dotenv_values(".env")
 
-
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
@@ -27,8 +26,6 @@ REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
 OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
-
-
 
 
 app = Flask(__name__)
@@ -89,10 +86,9 @@ class Meeting(db.Model):
     meeting_insts = db.relationship("Meeting_Inst", back_populates="meeting")
     users = db.relationship('User', secondary=Permissions, back_populates='pull_meetings')
 
-    def __init__(self, id, topic, host_id):
+    def __init__(self, id, topic):
         self.id = id
         self.topic = topic
-        self.host_id = host_id
 
 class Meeting_Inst(db.Model):
     __tablename__ = "meeting_insts"
@@ -273,6 +269,7 @@ def refresh_token():
 
     return new_access_token, new_r_token
 
+
 # retrieval
 
 def get_participants(uuid):
@@ -353,14 +350,12 @@ def get_recordings(meeting_id):
         # finds all meeting instances matching meeting ID
         if str(meeting['id']) == meeting_id:
             topic = meeting['topic']
-            host_id = meeting['host_id']
 
             m_data['topic'] = topic
-            m_data['host_id'] = host_id
 
             #add to new meetings to meetings table
             if Meeting.query.filter_by(id=meeting_id).first() == None:
-                new_meeting = Meeting(meeting_id, topic, host_id)
+                new_meeting = Meeting(meeting_id, topic)
                 db.session.add(new_meeting)
                 db.session.commit()
 
@@ -417,9 +412,61 @@ def get_recordings(meeting_id):
 
 def host_retrieve():
     """
+    retrieves submitted meeting info for current user to display
+    returns a dictionary containing each meeting ID mapped to its topic and UUIDs,
+    and each UUID mapped to its start_time, duration, and participants' names
     """
+    curr_id = current_user.id
+    hosted_meetings = Meeting.query.filter_by(host_id=curr_id).all()
+    meetings_dict = {}
+    for meeting in hosted_meetings:
+        meeting_id = meeting.id
+        meetings_dict[meeting_id] = {}
+        meetings_dict[meeting_id]["topic"] = meeting.topic
 
+        # find all UUIDs
+        uuids = Meeting_Inst.query.filter_by(meeting_id=meeting.id).all()
+        for inst in uuids:
+            uuid = inst.uuid
+            meetings_dict[meeting_id][uuid] = {}
+            meetings_dict[meeting_id][uuid]["start_time"] = inst.start_time
+            meetings_dict[meeting_id][uuid]["duration"] = inst.duration
+            meetings_dict[meeting_id][uuid]["participants"] = []
+            for participant in inst.participants:
+                meetings_dict[meeting_id][uuid]["participants"].append(participant.name)
 
+    return meetings_dict
+
+def instructor_retrieve():
+    """
+    """
+    if current_user.role not in ["Instructor", "Admin"]:
+        return None
+
+    curr_id = current_user.id
+    # retrieve all meetings w/ current user as recipient
+    received_meetings = Meeting.query.filter(Meeting.users.any(id=curr_id)).all()
+
+    meetings_dict = {}
+    for meeting in received_meetings:
+        meeting_id = meeting.id
+        meetings_dict[meeting_id] = {}
+        meetings_dict[meeting_id]["topic"] = meeting.topic
+        host = User.query.filter_by(id=meeting.host_id).first()
+        meetings_dict[meeting_id]["host"] = host.email
+
+        # find all UUIDs
+        uuids = Meeting_Inst.query.filter_by(meeting_id=meeting.id).all()
+        for inst in uuids:
+            uuid = inst.uuid
+            meetings_dict[meeting_id][uuid] = {}
+            meetings_dict[meeting_id][uuid]["start_time"] = inst.start_time
+            meetings_dict[meeting_id][uuid]["duration"] = inst.duration
+            meetings_dict[meeting_id][uuid]["participants"] = []
+            for participant in inst.participants:
+                meetings_dict[meeting_id][uuid]["participants"].append(participant.name)
+
+    return meetings_dict
 
 # parsing
 
@@ -701,7 +748,8 @@ def submit():
     form = MeetingSubForm()
     # app will fail if user has not authenticated OAuth extension
     if form.validate_on_submit():
-        # CHANGED TO ACCEPT SINGLE MEETING ID
+        # CHANGED TO ACCEPT SINGLE MEETING 
+        print("nice")
         meeting_id = form.meetid.data
         recipient_email = form.recipient.data
         recipient = User.query.filter_by(email=recipient_email).first()
@@ -713,16 +761,28 @@ def submit():
         # removes whitespace if present
         meeting_id = meeting_id.replace(" ", "")
         print("Meeting ID: " + meeting_id)
+
+        # get meetings and info, add to DB
         try:
             get_recordings(meeting_id)
         except:
             print("unable to retrieve info, redirecting")
             return redirect(OAUTH)
 
+        # adds meeting ID to current_user's sub_meetings if new
+        if meeting_id not in [meeting.id for meeting in current_user.sub_meetings]:
+            meeting = Meeting.query.filter_by(id=meeting_id).first()
+            current_user.sub_meetings.append(meeting)
+            db.session.commit()
+
+        # adds meeting ID to recipient's permissions/pull_meetings if new
         if meeting_id not in [meeting.id for meeting in recipient.pull_meetings]:
             meeting = Meeting.query.filter_by(id=meeting_id).first()
             recipient.pull_meetings.append(meeting)
             db.session.commit()
+
+        # retrieves info from sub_meetings for current_user
+        meetings_dict = host_retrieve()
 
         ### may change in prod. ###
         # **moving to dashboard/instructor page only
@@ -752,9 +812,10 @@ def submit():
                 print("Participants:")
                 print(meeting_vals["participants"])
         """
-        return render_template("submit.html", meetings = meeting_dict, form=form)
-        
+        print(meetings_dict)
 
+        return render_template("submit.html", form=form, new_sub=True, meetings=meetings_dict)
+        
     try:
         auth_code = request.args['code']
         try:
@@ -782,13 +843,17 @@ def submit():
     session['a_token'] = access_token
     session['r_token'] = r_token
 
-    return render_template("submit.html", form=form)
+    # retrieves info from sub_meetings for current_user
+    meetings_dict = host_retrieve()
+
+    return render_template("submit.html", form=form, meetings=meetings_dict)
 
 @app.route('/dashboard', methods=["GET", "POST"])
 @login_required
 def dashboard():
     if current_user.role == "Instructor" or current_user.role == "Admin":
-        return render_template("dashboard.html")
+        meetings_dict = instructor_retrieve()
+        return render_template("dashboard.html", meetings=meetings_dict)
     else:
         return redirect(url_for('home'))
 
@@ -796,7 +861,10 @@ def dashboard():
 @login_required
 def admin():
     if current_user.role == "Admin":
-        return render_template("admin.html")
+
+        users = User.query.all()
+
+        return render_template("admin.html", users=users)
     else:
         return redirect(url_for('home'))
 
