@@ -116,6 +116,7 @@ div#dashboard {
     border-radius: 20px;
     box-shadow: 0 4px 8px 0 lightgray, 0 6px 20px 0 lightgray;
     padding: 0vh 2vw;
+    margin-bottom: 2vh;
 }
 
 .meeting-header {

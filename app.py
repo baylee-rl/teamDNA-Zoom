@@ -18,6 +18,7 @@ from flask_login import LoginManager, login_user, login_required, UserMixin, log
 import igraph
 config = dotenv_values(".env")
 
+"""
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
@@ -26,11 +27,21 @@ REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
 OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
+"""
+
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
+app.config['WTF_CSRF_ENABLED'] = False
 db = SQLAlchemy(app)
 db.init_app(app)
 login_manager = LoginManager()
@@ -141,7 +152,7 @@ class Transcript_Block(db.Model):
     starttime = db.Column(postgresql.INTERVAL)
     endtime = db.Column(postgresql.INTERVAL)
     speaker = db.Column(db.String(30))
-    speech = db.Column(db.String(100))
+    speech = db.Column(db.String(500))
 
     def __init__(self, transcript_id):
         self.transcript_id = transcript_id
@@ -287,6 +298,7 @@ def get_participants(uuid):
     url = "https://api.zoom.us/v2/past_meetings/" + uuid + "/participants"
     response = requests.get(url, headers=headers)
     participants_data = response.json()
+
     did_refresh = api_refresh_check(participants_data)
     if did_refresh:
         authorization = "Bearer " + session['a_token']
@@ -300,17 +312,23 @@ def get_participants(uuid):
 
     new_participants = []
     for participant in participants_data['participants']:
-        if participant["name"] in new_participants.keys() and participant["user_email"] == '':
+        if participant["name"] in new_participants:
             continue
         id = participant["id"]
         name = participant["name"]
         email = participant["user_email"]
         new_participants.append(name)
 
-        #add participants to meeting inst row in DB
+        new_participant = Participant.query.filter_by(id=id).first()
         meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
-        if len(meeting_inst.participants) == 0:
+        if new_participant:
+            print('1')
+            print(new_participant)
+            meeting_inst.participants.append(new_participant)
+        else:
+            print('2')
             meeting_inst.participants.append(Participant(id, name, email))
+        
     db.session.commit()
     return new_participants
 
@@ -360,6 +378,9 @@ def get_recordings(meeting_id):
                 db.session.commit()
 
             uuid = meeting['uuid']
+
+            print(uuid)
+
             m_data[uuid] = {}
 
             duration = meeting['duration']
@@ -369,11 +390,6 @@ def get_recordings(meeting_id):
 
             m_data[uuid]['duration'] = duration
             m_data[uuid]['start_time'] = timedate
-
-            # retrieve participants and add to DB
-            participants = get_participants(uuid)
-
-            m_data[uuid]['participants'] = participants
 
             transcripts = []
             transcript_found = False
@@ -389,8 +405,14 @@ def get_recordings(meeting_id):
                     db.session.add(meeting_inst)
                     db.session.commit()
                     print("UUID successfully added")
+
+                    # retrieve participants and add to DB
+                    participants = get_participants(uuid)
+                    m_data[uuid]['participants'] = participants
+
                 # Parse and add to DB any new transcripts
-                if Transcript.query.filter_by(uuid=uuid).all() == None:
+                if Transcript.query.filter_by(uuid=uuid).all() == []:
+                    print("no transcripts yet :)")
                     for file in transcripts:
                         print("Downloading...")
 
@@ -399,6 +421,7 @@ def get_recordings(meeting_id):
 
                         #add transcript to DB
                         transcript = Transcript(uuid, response.text)
+                        print(transcript)
                         db.session.add(transcript)
                         db.session.commit()
 
@@ -566,10 +589,10 @@ def speech_instances(transcript_list):
     speech_nums = {}
     for p_transcript in transcript_list:
         for block in p_transcript:
-            if block[2] not in speech_nums:
-                speech_nums[block[2]] = 1
+            if block.speaker not in speech_nums:
+                speech_nums[block.speaker] = 1
             else:
-                speech_nums[block[2]] += 1
+                speech_nums[block.speaker] += 1
     # print("Number of")
     # print(speech_nums)
     return speech_nums
@@ -583,10 +606,10 @@ def silence_breaking(t_list):
         for idx, block in enumerate(p_transcript):
             if idx == 0:
                 continue
-            prev_tstamp = p_transcript[idx-1][1][1]
-            prev_speaker = p_transcript[idx-1][2]
-            curr_tstamp = block[1][0]
-            curr_speaker = block[2]
+            prev_tstamp = p_transcript[idx-1].endtime
+            prev_speaker = p_transcript[idx-1].speaker
+            curr_tstamp = block.starttime
+            curr_speaker = block.speaker
             silence_dur = curr_tstamp - prev_tstamp
             if silence_dur >= timedelta(seconds=2.5):
                 if prev_speaker not in breaks:
@@ -634,10 +657,10 @@ def speech_durations(transcript_list):
     durations = defaultdict(lambda: timedelta())
     for p_transcript in transcript_list:
         for block in p_transcript:
-            tstamp1 = block[1][0]
-            tstamp2 = block[1][1]
+            tstamp1 = block.starttime
+            tstamp2 = block.endtime
             partial_duration = abs(tstamp1 - tstamp2)
-            durations[block[2]] += partial_duration
+            durations[block.speaker] += partial_duration
 
     # calculate distribution
     distribution = defaultdict(float)
@@ -749,7 +772,6 @@ def submit():
     # app will fail if user has not authenticated OAuth extension
     if form.validate_on_submit():
         # CHANGED TO ACCEPT SINGLE MEETING 
-        print("nice")
         meeting_id = form.meetid.data
         recipient_email = form.recipient.data
         recipient = User.query.filter_by(email=recipient_email).first()
@@ -763,11 +785,11 @@ def submit():
         print("Meeting ID: " + meeting_id)
 
         # get meetings and info, add to DB
-        try:
-            get_recordings(meeting_id)
-        except:
-            print("unable to retrieve info, redirecting")
-            return redirect(OAUTH)
+        # try:
+        get_recordings(meeting_id)
+        # except:
+        #     print("unable to retrieve info, redirecting")
+        #     return redirect(OAUTH)
 
         # adds meeting ID to current_user's sub_meetings if new
         if meeting_id not in [meeting.id for meeting in current_user.sub_meetings]:
@@ -853,6 +875,30 @@ def submit():
 def dashboard():
     if current_user.role == "Instructor" or current_user.role == "Admin":
         meetings_dict = instructor_retrieve()
+
+        if request.method == 'POST':
+            uuids = request.form.getlist('checkbox')
+            print(uuids)
+
+            master_t_list = []
+            for uuid in uuids:
+                meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+                print(meeting_inst)
+                t_list = Transcript.query.filter_by(uuid=uuid).all()
+                print(t_list)
+                for idx, t in enumerate(t_list):
+                    p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
+                    print(p_t_list)
+                    t_list[idx] = p_t_list
+                master_t_list.extend(t_list)
+            print(master_t_list)
+
+            print(speech_instances(master_t_list))
+            print(silence_breaking(master_t_list))
+            print(speech_durations(master_t_list))
+
+            # return render_template("analysis.html", analysis=a_dict)
+
         return render_template("dashboard.html", meetings=meetings_dict)
     else:
         return redirect(url_for('home'))

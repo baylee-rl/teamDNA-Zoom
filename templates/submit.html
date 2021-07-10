@@ -46,7 +46,7 @@
                                     ...
                                 {% elif loop.index > 5 %}
 
-                                {% elif loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
+                                {% elif loop.index == meetings[meeting][uuid]["participants"]|length : %}
                                     {{ participant }}
                                 {% else %}
                                     {{ participant }}, 
