@@ -16,6 +16,7 @@ form {
 }
 
 
+
 input {
     border: none;
     border-bottom: 1px solid lightgray;
@@ -50,7 +51,7 @@ h6 {
 }
 
 p {
-    font-size: medium;;
+    font-size: medium;
     width: 100%;
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
     font-weight: 300;
@@ -149,6 +150,7 @@ div.meetings {
     padding-right: 0.5vw;
     margin-top: 0.5vh;
     margin-bottom: 0.5vh;
+    margin-right: -2.9vw;
     text-align: left;
 }
 
@@ -156,7 +158,7 @@ div.meetings {
     display: block;
     position: relative;
     top: 6vh;
-    right: 7%;
+    right: 2.5%;
     cursor: pointer;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -262,6 +264,31 @@ div.meetings {
     -webkit-transform: rotate(45deg);
     -ms-transform: rotate(45deg);
     transform: rotate(45deg);
+}
+
+@media screen and (max-width: 1500px) {
+    h6 {
+        font-size: 2vh;
+    }
+    p {
+        font-size: small;
+    }
+    svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .meeting-header {
+        font-size: medium;
+    }
+
+    .meeting-box {
+        height: 20vh;
+    }
+
+    .small-checkbox {
+        top: 7vh;
+    }
 }
 
 

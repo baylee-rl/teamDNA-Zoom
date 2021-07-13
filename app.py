@@ -18,7 +18,7 @@ from flask_login import LoginManager, login_user, login_required, UserMixin, log
 import igraph
 config = dotenv_values(".env")
 
-"""
+
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
@@ -27,15 +27,6 @@ REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
 OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
-"""
-
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
 
 
 app = Flask(__name__)
@@ -883,21 +874,26 @@ def dashboard():
             master_t_list = []
             for uuid in uuids:
                 meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
-                print(meeting_inst)
+                # print(meeting_inst)
                 t_list = Transcript.query.filter_by(uuid=uuid).all()
-                print(t_list)
+                # print(t_list)
                 for idx, t in enumerate(t_list):
                     p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
-                    print(p_t_list)
+                    # print(p_t_list)
                     t_list[idx] = p_t_list
                 master_t_list.extend(t_list)
-            print(master_t_list)
+            # print(master_t_list)
+
+            a_dict = {}
+            a_dict["speech_instances"] = speech_instances(master_t_list)
+            a_dict["silence_breaking"] = silence_breaking(master_t_list)
+            a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list)
 
             print(speech_instances(master_t_list))
             print(silence_breaking(master_t_list))
             print(speech_durations(master_t_list))
 
-            # return render_template("analysis.html", analysis=a_dict)
+            return render_template("analysis.html", analysis=a_dict)
 
         return render_template("dashboard.html", meetings=meetings_dict)
     else:
