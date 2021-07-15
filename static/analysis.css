@@ -1,5 +1,6 @@
 div {
     text-align: center;
+<<<<<<< HEAD
 }
 h6 {
     line-height: normal;
@@ -10,4 +11,14 @@ h6 {
 
 p {
     font-family: "Open Sans", sans-serif;
+=======
+    font-family: 'Open Sans', sans-serif;
+}
+
+h6 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: large;
+    margin-bottom: 0%;
+    margin-top: 5vh;
+>>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
 }
