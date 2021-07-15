@@ -550,6 +550,7 @@ def parse_transcript(transcript_id, transcript):
             p_transcript.append(block)
         else:
             pass
+<<<<<<< HEAD
 
     return p_transcript
 
@@ -821,6 +822,279 @@ def sign_in():
             return render_template("sign-in.html", form=form, error='wrong-pass')
     return render_template("sign-in.html", form=form)
 
+=======
+
+    return p_transcript
+
+def meetings_compilation(given_uuids, meetings_dict):
+    """
+    Inputs: 
+        given_uuids -- a list of uuids collected from dashboard inputs 
+        meetings_dict -- dictionary of meeting information 
+    Returns:
+        transcript_collection -- a list of trascripts form selected meetings formatted so that 
+        it can be inputted into any analysis function 
+    """
+    # list of p_transcript blocks, no seperation between uuids
+    # will be formatted so that it can be inputted as "transcript_list" in analysis functions
+    transcript_collection = []
+    for meeting in meetings_dict:
+        for uuid in meetings_dict[meeting].keys():
+            if uuid in given_uuids:
+                # add to t_list
+                for transcript in meetings_dict[meeting][uuid]["transcripts"]:
+                    transcript_instance = transcript
+                    transcript_collection.append(transcript)
+
+    return transcript_collection
+
+# analysis
+
+# def get_graph(transcript_list):
+    """
+    # create adjacency matrix as dict
+    ad_mat = {}
+    for p_transcript in transcript_list:
+        for block in range(len(p_transcript)-1):
+            if p_transcript[block][2] not in ad_mat:
+                ad_mat[p_transcript[block][2]] = {}
+            if p_transcript[block + 1][2] not in ad_mat[p_transcript[block][2]]:
+                # initialize one turn 
+                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] = 1
+            else: 
+                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] += 1
+                
+    # recreate the matrix as list of list 
+    # use igraph.Graph.Adjacency for adjacency --> graph     Weighted!!!!
+    # rename nodes from dict indexes/names 
+
+    """
+
+def speech_instances(transcript_list, participants):
+    """
+    """
+    speech_nums = {}
+    for p_transcript in transcript_list:
+        for block in p_transcript:
+            if block.speaker not in speech_nums:
+                speech_nums[block.speaker] = 1
+            else:
+                speech_nums[block.speaker] += 1
+    for participant in participants:
+        if participant not in speech_nums.keys():
+            speech_nums[participant] = 0
+    return speech_nums
+
+def silence_breaking(transcript_list):
+    """
+    """
+    # breaks = {2.5 = {sophia = {4}, baylee = {3}}, 5 = {tina = 2}, 10 = {}, times = {sophia = [], tina = []}, total = {[]}}}
+    breaks = {}
+    for p_transcript in transcript_list:
+        for idx, block in enumerate(p_transcript):
+            if idx == 0:
+                continue
+            prev_tstamp = p_transcript[idx-1].endtime
+            prev_speaker = p_transcript[idx-1].speaker
+            curr_tstamp = block.starttime
+            curr_speaker = block.speaker
+            silence_dur = curr_tstamp - prev_tstamp
+            if silence_dur >= timedelta(seconds=2.5):
+                if prev_speaker not in breaks:
+                    breaks[prev_speaker] = {"total-breaks":0, "total-starts":0, "avg-break":timedelta(seconds=0), 2.5:0, 5:0, 7.5:0, 10:0, "times":[]}
+                if curr_speaker not in breaks:
+                    breaks[curr_speaker] = {"total-breaks":0, "total-starts":0, "avg-break":timedelta(seconds=0), 2.5:0, 5:0, 7.5:0, 10:0, "times":[]}
+                if silence_dur >= timedelta(seconds=5):
+                    if silence_dur >= timedelta(seconds=7.5):
+                        if silence_dur >= timedelta(seconds=10):
+                            breaks[prev_speaker]["total-starts"] += 1
+                            breaks[curr_speaker]["total-breaks"] += 1
+                            breaks[curr_speaker][10] += 1
+                            breaks[curr_speaker]["times"].append(silence_dur)
+                        else:
+                            breaks[prev_speaker]["total-starts"] += 1
+                            breaks[curr_speaker]["total-breaks"] += 1
+                            breaks[curr_speaker][7.5] += 1
+                            breaks[curr_speaker]["times"].append(silence_dur)
+                            
+                    else:
+                        breaks[prev_speaker]["total-starts"] += 1
+                        breaks[curr_speaker]["total-breaks"] += 1
+                        breaks[curr_speaker][5] += 1
+                        breaks[curr_speaker]["times"].append(silence_dur)
+                else:
+                    breaks[prev_speaker]["total-starts"] += 1
+                    breaks[curr_speaker]["total-breaks"] += 1
+                    breaks[curr_speaker][2.5] += 1
+                    breaks[curr_speaker]["times"].append(silence_dur)
+    for participant in breaks:
+        times_list = breaks[participant]["times"]
+        if len(times_list) == 0:
+            average = 0
+            breaks[participant]["avg-break"] = average
+            continue
+        average = sum(times_list, timedelta()) / len(times_list)
+        breaks[participant]["avg-break"] = average
+    print(breaks)
+    return breaks
+       
+def speech_durations(transcript_list, participants):
+    """
+    Calculates duration each participant spoke and distribution of speaking time
+    """
+    durations = defaultdict(lambda: timedelta())
+    for p_transcript in transcript_list:
+        for block in p_transcript:
+            tstamp1 = block.starttime
+            tstamp2 = block.endtime
+            partial_duration = abs(tstamp1 - tstamp2)
+            durations[block.speaker] += partial_duration
+
+    # calculate distribution
+    distribution = defaultdict(float)
+    total_speaking_time = 0
+    for participant in durations:
+        total_speaking_time += int(durations[participant].total_seconds())
+    for participant in durations:
+        distribution[participant] = int(durations[participant].total_seconds()) / total_speaking_time
+
+    for participant in participants:
+        if participant not in durations.keys():
+            durations[participant] = timedelta(0)
+            distribution[participant] = 0
+
+    return durations, distribution
+
+def get_graph(transcript_list, participants):
+    # create adjacency matrix as dict
+    ad_mat = {}
+    ad_list = []
+    index = 0
+    edge_tot = 0
+    for p_transcript in transcript_list:
+        for idx, block in enumerate(p_transcript):
+            if idx == len(p_transcript) - 1:
+                continue
+            curr_speaker = block.speaker
+            next_speaker = p_transcript[idx+1].speaker
+            if curr_speaker not in ad_mat:
+                ad_mat[curr_speaker] = {}
+                ad_mat[curr_speaker]['index'] = index
+                index += 1
+            if next_speaker not in ad_mat[curr_speaker]:
+                # initialize one turn and the edge
+                if curr_speaker != next_speaker:
+                    edge_tot += 1
+                ad_mat[curr_speaker][next_speaker] = 1
+            else:
+                ad_mat[curr_speaker][next_speaker] += 1
+            if next_speaker not in ad_mat:
+                ad_mat[next_speaker] = {'index' : index}
+                index += 1
+    for speaker_1 in ad_mat:
+        ad_list.append([])
+    for i in range(len(ad_list)):
+        for speaker_1 in ad_mat:
+            ad_list[i].append(0)
+    print (ad_list)
+    for speaker_1 in ad_mat:
+        for speaker_2 in ad_mat[speaker_1]:
+            if speaker_2 == 'index':
+                continue
+            ad_list[ad_mat[speaker_1]['index']][ad_mat[speaker_2]['index']] = ad_mat[speaker_1][speaker_2]
+    g = igraph.Graph.Weighted_Adjacency(ad_list, mode='directed', attr='weight', loops=True)
+    # retroactive addition of non-speakers
+    speaker_list = []
+    for key in ad_mat.keys():
+        speaker_list.append(key)
+    for i in range(len(g.vs)):
+            print (ad_mat.keys())
+            g.vs[i]["name"] = speaker_list[i]
+    for participant in participants:
+        if participant not in speaker_list:
+            g.add_vertex(name=participant)
+            #g.add_edge(participant, ad_mat.keys[0] , weight=None)
+    edge_density = edge_tot/(len(participants)*(len(participants)-1))
+    centr_degree = edge_tot
+
+    return ad_mat, ad_list, g, edge_density, centr_degree
+
+# FLASK GLOBALS #
+@app.context_processor
+def inject_redirect_url():
+    return dict(redirect=OAUTH)
+
+
+# LOGIN MANAGER #
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    must take unicode user id
+    """
+    user = User.query.filter_by(id=user_id).first()
+    if user:
+        return user
+    else:
+        return None
+
+
+# ROUTING #
+
+"""
+@app.route("/example", methods=["GET", "POST"])
+def example():
+    return render_template("example.html")
+"""
+
+@app.route("/")
+def home_redirect():
+    return redirect(url_for('home'))
+
+@app.route("/home")
+def home():
+    return render_template("home.html")
+
+@app.route("/sign-up", methods=["GET", "POST"])
+def sign_up():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        password_hash = generate_password_hash(password)
+
+        other_user = User.query.filter_by(email=email).first()
+        if other_user:
+            return render_template("sign-up.html", form=form, duplicate_email=True)
+
+        new_user = User(email, password_hash, "User")
+        db.session.add(new_user)
+        db.session.commit()
+
+        login_user(User.query.filter_by(email=email).first(), force=True)
+
+        return render_template("sign-up-success.html")
+    return render_template("sign-up.html", form=form)
+
+@app.route("/sign-in", methods=["GET", "POST"])
+def sign_in():
+    form = LoginForm()
+    if form.validate_on_submit():
+        email_entered = form.email.data
+        password_entered = form.password.data
+        remember=form.remember.data
+        user = User.query.filter_by(email=email_entered).first()
+        if user is not None and check_password_hash(user.password_hash, password_entered):
+            login_user(user, force=True, remember=remember)
+            return render_template("sign-in-success.html")
+    elif request.method == "POST":
+        user = User.query.filter_by(email=form.email.data).first()
+        if user == None:
+            return render_template("sign-in.html", form=form, error='wrong-email')
+        else:
+            return render_template("sign-in.html", form=form, error='wrong-pass')
+    return render_template("sign-in.html", form=form)
+
+>>>>>>> c75244a734ccbbd154ef16845f6ed8a964a95645
 @app.route('/logout')
 @login_required
 def logout():
@@ -929,6 +1203,10 @@ def dashboard():
         meetings_dict = instructor_retrieve()
 
         if request.method == 'POST':
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> c75244a734ccbbd154ef16845f6ed8a964a95645
             if 'analyze' in request.form:
                 uuids = request.form.getlist('checkbox')
                 print(uuids)
@@ -991,6 +1269,37 @@ def dashboard():
                         zf.write(file, basename(file))
 
                 return send_file('static/client/zip/transcripts.zip', as_attachment=True)
+<<<<<<< HEAD
+=======
+=======
+            uuids = request.form.getlist('checkbox')
+            print(uuids)
+
+            master_t_list = []
+            for uuid in uuids:
+                meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+                # print(meeting_inst)
+                t_list = Transcript.query.filter_by(uuid=uuid).all()
+                # print(t_list)
+                for idx, t in enumerate(t_list):
+                    p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
+                    # print(p_t_list)
+                    t_list[idx] = p_t_list
+                master_t_list.extend(t_list)
+            # print(master_t_list)
+
+            a_dict = {}
+            a_dict["speech_instances"] = speech_instances(master_t_list)
+            a_dict["silence_breaking"] = silence_breaking(master_t_list)
+            a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list)
+
+            print(speech_instances(master_t_list))
+            print(silence_breaking(master_t_list))
+            print(speech_durations(master_t_list))
+
+            return render_template("analysis.html", analysis=a_dict)
+>>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
+>>>>>>> c75244a734ccbbd154ef16845f6ed8a964a95645
 
         return render_template("dashboard.html", meetings=meetings_dict)
     else:
