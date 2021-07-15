@@ -96,7 +96,13 @@ input[type=submit]:hover {
 }
 
 input#analyze {
-    width: 12%;
+    width: 22%;
+    height: 1.9em;
+}
+
+input#download {
+    margin-top: -0.5vh;
+    width: 22%;
     height: 1.9em;
 }
 
@@ -138,7 +144,7 @@ div.meetings {
 .meeting-box {
     background-color: #BCE4F0;
     width: 18%;
-    height: 17vh;
+    height: 19vh;
     border-radius: 15px;
     font-size: 1.6vh;
     color: #0D3045;
@@ -149,14 +155,15 @@ div.meetings {
     padding-right: 0.5vw;
     margin-top: 0.5vh;
     margin-bottom: 0.5vh;
+    margin-right: -2.9vw;
     text-align: left;
 }
 
 .small-checkbox {
     display: block;
     position: relative;
-    top: 6vh;
-    right: 7%;
+    top: 6.8vh;
+    right: 2.3%;
     cursor: pointer;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -262,6 +269,29 @@ div.meetings {
     -webkit-transform: rotate(45deg);
     -ms-transform: rotate(45deg);
     transform: rotate(45deg);
+}
+
+
+@media screen and (max-width: 1500px) {
+    h6 {
+        font-size: 2vh;
+    }
+    p {
+        font-size: small;
+    }
+    svg {
+        width: 17px;
+        height: 17px;
+    }
+    .meeting-header {
+        font-size: medium;
+    }
+    .meeting-box {
+        height: 20vh;
+    }
+    .small-checkbox {
+        top: 7vh;
+    }
 }
 
 

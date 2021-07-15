@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block head %}
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='analysis.css') }}">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+  
+{% endblock %}
+{% block title %}Analysis{% endblock %}
+{% block content %}
+<div id="instances">
+    <h6>Speech Instances</h6>
+    {% for speaker in analysis["speech_instances"] %}
+        <p>{{ speaker }}: Spoke {{ analysis["speech_instances"][speaker] }} times</p>
+    {% endfor %}
+</div>
+<div id="durations">
+    <h6>Speech Durations</h6>
+    {% for speaker in analysis["speech_durations"] %}
+        <p>{{speaker}}: {{analysis["speech_durations"][speaker]}}</p>
+    {% endfor %}
+</div>
+<div id="distribution">
+    <h6>Distribution of Speaking</h6>
+    {% for speaker in analysis["speech_distribution"] %}
+        <p>{{speaker}}: {{ analysis["speech_distribution"][speaker] * 100 }}%</p>
+    {% endfor %}
+</div>
+<div id="silence-breaking">
+    <h6>Silence-Breaking</h6>
+    {% for speaker in analysis["silence_breaking"] %}
+        <p>{{speaker}}: 
+            {% for metric in analysis["silence_breaking"][speaker] if metric != "times": %}
+                {% if loop.index == analysis["silence_breaking"][speaker]|length - 1 : %}
+                    {{metric}}: {{analysis["silence_breaking"][speaker][metric]}}
+                {% else %}
+                    {{metric}}: {{analysis["silence_breaking"][speaker][metric]}}, 
+                {% endif %}
+            {% endfor %}
+        </p>
+    {% endfor %}
+</div>
+<div id="network-analysis">
+    <h6>Network Analysis</h6>
+    <p>Center Degree: {{ analysis["center_deg"] }}</p>
+    <p>Edge Density: {{ analysis["edge_density"] }}</p>
+</div>
+
+{% endblock %}

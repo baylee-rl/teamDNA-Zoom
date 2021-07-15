@@ -1,7 +1,9 @@
 import os
+from os.path import basename
+import zipfile
 from dotenv import dotenv_values
 import requests
-from flask import Flask, render_template, request, session, redirect, url_for, json
+from flask import Flask, render_template, request, session, redirect, url_for, json, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects import postgresql
 from flask_wtf import FlaskForm
@@ -18,7 +20,7 @@ from flask_login import LoginManager, login_user, login_required, UserMixin, log
 import igraph
 config = dotenv_values(".env")
 
-"""
+
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
@@ -27,15 +29,6 @@ REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
 OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
-"""
-
-# DEVELOPMENT #
-CLIENT_ID = config["CLIENT_ID"]
-CLIENT_SEC = config["CLIENT_SECRET"]
-SECRET_KEY = "example"
-REDIRECT = "http://36350625dde1.ngrok.io/submit"
-OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
-SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
 
 app = Flask(__name__)
@@ -312,6 +305,8 @@ def get_participants(uuid):
 
     new_participants = []
     for participant in participants_data['participants']:
+        if "#" in participant:
+            participant.replace("#", ",")
         if participant["name"] in new_participants:
             continue
         id = participant["id"]
@@ -460,6 +455,13 @@ def host_retrieve():
 
     return meetings_dict
 
+def host_refresh():
+    curr_id = current_user.id
+    hosted_meetings = Meeting.query.filter_by(host_id=curr_id).all()
+
+    for meeting in hosted_meetings:
+        get_recordings(meeting.id)
+
 def instructor_retrieve():
     """
     """
@@ -490,6 +492,18 @@ def instructor_retrieve():
                 meetings_dict[meeting_id][uuid]["participants"].append(participant.name)
 
     return meetings_dict
+
+def transcript_write_to_file(transcript_id):
+    transcript = Transcript.query.filter_by(id=transcript_id).first()
+    uuid = transcript.uuid
+    transcript = transcript.transcript
+    meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+    timedate = meeting_inst.start_time
+
+    with open("static/client/txt/%s.txt" % timedate, "w") as file:
+        file.write(transcript)
+
+    return "static/client/txt/%s.txt" % timedate
 
 # parsing
 
@@ -583,7 +597,7 @@ def meetings_compilation(given_uuids, meetings_dict):
 
     """
 
-def speech_instances(transcript_list):
+def speech_instances(transcript_list, participants):
     """
     """
     speech_nums = {}
@@ -593,16 +607,17 @@ def speech_instances(transcript_list):
                 speech_nums[block.speaker] = 1
             else:
                 speech_nums[block.speaker] += 1
-    # print("Number of")
-    # print(speech_nums)
+    for participant in participants:
+        if participant not in speech_nums.keys():
+            speech_nums[participant] = 0
     return speech_nums
 
-def silence_breaking(t_list):
+def silence_breaking(transcript_list):
     """
     """
     # breaks = {2.5 = {sophia = {4}, baylee = {3}}, 5 = {tina = 2}, 10 = {}, times = {sophia = [], tina = []}, total = {[]}}}
     breaks = {}
-    for p_transcript in t_list:
+    for p_transcript in transcript_list:
         for idx, block in enumerate(p_transcript):
             if idx == 0:
                 continue
@@ -650,7 +665,7 @@ def silence_breaking(t_list):
     print(breaks)
     return breaks
        
-def speech_durations(transcript_list):
+def speech_durations(transcript_list, participants):
     """
     Calculates duration each participant spoke and distribution of speaking time
     """
@@ -670,8 +685,66 @@ def speech_durations(transcript_list):
     for participant in durations:
         distribution[participant] = int(durations[participant].total_seconds()) / total_speaking_time
 
+    for participant in participants:
+        if participant not in durations.keys():
+            durations[participant] = timedelta(0)
+            distribution[participant] = 0
+
     return durations, distribution
 
+def get_graph(transcript_list, participants):
+    # create adjacency matrix as dict
+    ad_mat = {}
+    ad_list = []
+    index = 0
+    edge_tot = 0
+    for p_transcript in transcript_list:
+        for idx, block in enumerate(p_transcript):
+            if idx == len(p_transcript) - 1:
+                continue
+            curr_speaker = block.speaker
+            next_speaker = p_transcript[idx+1].speaker
+            if curr_speaker not in ad_mat:
+                ad_mat[curr_speaker] = {}
+                ad_mat[curr_speaker]['index'] = index
+                index += 1
+            if next_speaker not in ad_mat[curr_speaker]:
+                # initialize one turn and the edge
+                if curr_speaker != next_speaker:
+                    edge_tot += 1
+                ad_mat[curr_speaker][next_speaker] = 1
+            else:
+                ad_mat[curr_speaker][next_speaker] += 1
+            if next_speaker not in ad_mat:
+                ad_mat[next_speaker] = {'index' : index}
+                index += 1
+    for speaker_1 in ad_mat:
+        ad_list.append([])
+    for i in range(len(ad_list)):
+        for speaker_1 in ad_mat:
+            ad_list[i].append(0)
+    print (ad_list)
+    for speaker_1 in ad_mat:
+        for speaker_2 in ad_mat[speaker_1]:
+            if speaker_2 == 'index':
+                continue
+            ad_list[ad_mat[speaker_1]['index']][ad_mat[speaker_2]['index']] = ad_mat[speaker_1][speaker_2]
+    g = igraph.Graph.Weighted_Adjacency(ad_list, mode='directed', attr='weight', loops=True)
+    # retroactive addition of non-speakers
+    speaker_list = []
+    for key in ad_mat.keys():
+        speaker_list.append(key)
+    for i in range(len(g.vs)):
+            print (ad_mat.keys())
+            g.vs[i]["name"] = speaker_list[i]
+    for participant in participants:
+        if participant not in speaker_list:
+            g.add_vertex(name=participant)
+            #g.add_edge(participant, ad_mat.keys[0] , weight=None)
+    edge_density = edge_tot/(len(participants)*(len(participants)-1))
+    centr_degree = edge_tot
+
+    return ad_mat, ad_list, g, edge_density, centr_degree
 
 # FLASK GLOBALS #
 @app.context_processor
@@ -806,38 +879,17 @@ def submit():
         # retrieves info from sub_meetings for current_user
         meetings_dict = host_retrieve()
 
-        ### may change in prod. ###
-        # **moving to dashboard/instructor page only
-        """
-        ### retroactively update metrics if any participant was excluded ###
-        for meeting in meeting_dict:
-            for meeting_inst in meeting_dict[meeting]:
-                if meeting_inst == "topic" or meeting_inst == "host_id":
-                    continue
-                meeting_vals = meeting_dict[meeting][meeting_inst]
-                if "instances" not in meeting_vals.keys():
-                    continue
-                instances = meeting_vals["instances"]
-                durations = meeting_vals["durations"]
-                distribution = meeting_vals["distribution"]
-                participants = meeting_vals["participants"]
-                # solves participants not in transcript
-                for participant in participants.keys():
-                    if participant not in instances.keys():
-                        instances[participant] = 0
-                    if participant not in durations.keys():
-                        durations[participant] = timedelta(seconds=0)
-                    if participant not in distribution.keys():
-                        distribution[participant] = 0.00
-                # print("UPDATED MEETING VALS: (LOOK HERE)")
-                # print(meeting_vals)
-                print("Participants:")
-                print(meeting_vals["participants"])
-        """
         print(meetings_dict)
 
         return render_template("submit.html", form=form, new_sub=True, meetings=meetings_dict)
         
+    elif request.method =="POST":
+        host_refresh()
+        meetings_dict = host_retrieve()
+        print("success!")
+        return render_template("submit.html", form=form, refreshed=True, meetings=meetings_dict)
+
+
     try:
         auth_code = request.args['code']
         try:
@@ -877,27 +929,68 @@ def dashboard():
         meetings_dict = instructor_retrieve()
 
         if request.method == 'POST':
-            uuids = request.form.getlist('checkbox')
-            print(uuids)
+            if 'analyze' in request.form:
+                uuids = request.form.getlist('checkbox')
+                print(uuids)
 
-            master_t_list = []
-            for uuid in uuids:
-                meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
-                print(meeting_inst)
-                t_list = Transcript.query.filter_by(uuid=uuid).all()
-                print(t_list)
-                for idx, t in enumerate(t_list):
-                    p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
-                    print(p_t_list)
-                    t_list[idx] = p_t_list
-                master_t_list.extend(t_list)
-            print(master_t_list)
+                master_t_list = []
+                participants = []
+                for uuid in uuids:
+                    meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+                    # print(meeting_inst)
+                    t_list = Transcript.query.filter_by(uuid=uuid).all()
+                    p_list = meeting_inst.participants
 
-            print(speech_instances(master_t_list))
-            print(silence_breaking(master_t_list))
-            print(speech_durations(master_t_list))
+                    for participant in p_list:
+                        if participant not in participants:
+                            participants.append(participant.name)
 
-            # return render_template("analysis.html", analysis=a_dict)
+                    # print(t_list)
+                    for idx, t in enumerate(t_list):
+                        p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
+                        # print(p_t_list)
+                        t_list[idx] = p_t_list
+                    master_t_list.extend(t_list)
+                # print(master_t_list)
+
+
+                a_dict = {}
+                a_dict["speech_instances"] = speech_instances(master_t_list, participants)
+                a_dict["silence_breaking"] = silence_breaking(master_t_list)
+                a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list, participants)
+                a_dict["adjacency_mat"], a_dict["adjacency_lst"], a_dict["network_graph"], a_dict["edge_density"], a_dict["center_deg"]  = get_graph(master_t_list, participants)
+
+                print(speech_instances(master_t_list, participants))
+                print(silence_breaking(master_t_list))
+                print(speech_durations(master_t_list, participants))
+                print(speech_durations(master_t_list, participants))
+
+                return render_template("analysis.html", analysis=a_dict)
+
+            elif 'download' in request.form:
+                uuids = request.form.getlist('checkbox')
+                print(uuids)
+
+                id_list = []
+
+                for uuid in uuids:
+                    meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+                    t_list = meeting_inst.transcripts
+                    for t in t_list:
+                        id_list.append(t.id)
+
+                print(id_list)
+
+                filenames = []
+
+                for t_id in id_list:
+                    filenames.append(transcript_write_to_file(t_id))
+
+                with zipfile.ZipFile('static/client/zip/transcripts.zip','w', zipfile.ZIP_DEFLATED) as zf: 
+                    for file in filenames:
+                        zf.write(file, basename(file))
+
+                return send_file('static/client/zip/transcripts.zip', as_attachment=True)
 
         return render_template("dashboard.html", meetings=meetings_dict)
     else:
@@ -927,3 +1020,24 @@ def submit_test():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+"""
+writing string to .txt file
+with open("example.txt", "w") as example_file:
+    example_file.write(example_string)
+@app.route("/get-file/<transcript_id>")
+def get_file(transcript_id):
+    filename = f"{transcript_id}.txt"
+    try:
+        return send_from_directory(PATH, filename=filename, as_attachment=True)
+    except FileNotFoundError:
+        error msg here or something
+http response headers
+- flask, change header to download at txt instead of string
+- flask, change response header, for download
+"""
+
+# zoom makes comma into hash for participant?!
+# also sophia is showing up under participants for a different
+# sqlalchemy.orm.exc.FlushError: Can't flush None value found in collection User.sub_meetings
+# instructions in context (on page) 
