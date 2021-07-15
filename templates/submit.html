@@ -17,11 +17,15 @@
         {{ form.csrf_token }}
         Meeting ID: 
         {{ form.meetid }}
-        Recipient User's Email: {% for error in form.recipient.errors %}<small>{{ error }}</small>{% endfor %}{% if msg == 'no-user': %}<small>No user with this email was found.</small>{% endif %}{% if msg == 'not-instructor': %}<small>That user does not have instructor privileges.</small>{% endif %}
+        Recipient User's Email: {% for error in form.recipient.errors %}{% if not refreshed %}<small>{{ error }}</small>{% endif %}{% endfor %}{% if msg == 'no-user': %}<small>No user with this email was found.</small>{% endif %}{% if msg == 'not-instructor': %}<small>That user does not have instructor privileges.</small>{% endif %}
         {{ form.recipient }}
         <br>
         <input type="submit" id="submit" value="Submit">
         {% if new_sub %}<p>Submission successful!</p>{% endif %}
+    </form>
+    <form action="" method="POST" id="refresh">
+        <input type="submit" id="refresh" value="Refresh Meetings">
+        {% if refreshed %}<p id = "refresh">Refresh successful!</p>{% endif %}
     </form>
     <div id="dashboard">
         <!-- Dashboard here -->

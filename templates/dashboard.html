@@ -31,7 +31,8 @@
     <div id="dashboard">
         <!-- Dashboard here -->
         <form method="post" id="big-form">
-            <input type="submit" id="analyze" value="Analyze">
+            <input type="submit" id="analyze" value="Analyze" name="analyze">
+            <input type="submit" id="download" value="Download Transcripts" name="download">
             {% for meeting in meetings: %}
             <div class="meeting-group" id="{{ meeting }}">
                 <div class="meeting-header">

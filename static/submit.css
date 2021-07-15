@@ -19,6 +19,10 @@ form {
     color: rgb(95, 95, 95);
 }
 
+form#refresh {
+    margin-top: -2.2vh;
+}
+
 input {
     border: none;
     border-bottom: 1px solid lightgray;
@@ -53,11 +57,15 @@ h6 {
 }
 
 p {
-    font-size: medium;;
+    font-size: medium;
     width: 100%;
     font-family: 'Open Sans','Trebuchet MS', sans-serif;
     font-weight: 300;
     margin-bottom: 0.5vh;
+}
+
+p#refresh {
+    margin-top: -1vh;
 }
 
 form p {
@@ -80,7 +88,7 @@ small {
 
 
 input[type=submit] {
-    width: 45%;
+    width: 35%;
     height: 1.8em;
     border: none;
     border-radius: 20px;
