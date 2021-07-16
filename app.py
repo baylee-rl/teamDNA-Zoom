@@ -929,7 +929,6 @@ def dashboard():
         meetings_dict = instructor_retrieve()
 
         if request.method == 'POST':
-<<<<<<< HEAD
             if 'analyze' in request.form:
                 uuids = request.form.getlist('checkbox')
                 print(uuids)
@@ -961,12 +960,18 @@ def dashboard():
                 a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list, participants)
                 a_dict["adjacency_mat"], a_dict["adjacency_lst"], a_dict["network_graph"], a_dict["edge_density"], a_dict["center_deg"]  = get_graph(master_t_list, participants)
 
+                distribution_labels = a_dict["speech_distribution"].keys()
+                distribution_values = a_dict["speech_distribution"].values()
+                distribution_values = [round(x * 100, 2) for x in distribution_values]
+
+                distribution = [list(distribution_labels), list(distribution_values)]
+
                 print(speech_instances(master_t_list, participants))
                 print(silence_breaking(master_t_list))
                 print(speech_durations(master_t_list, participants))
                 print(speech_durations(master_t_list, participants))
 
-                return render_template("analysis.html", analysis=a_dict)
+                return render_template("analysis.html", analysis=a_dict, distribution=distribution)
 
             elif 'download' in request.form:
                 uuids = request.form.getlist('checkbox')
@@ -992,34 +997,6 @@ def dashboard():
                         zf.write(file, basename(file))
 
                 return send_file('static/client/zip/transcripts.zip', as_attachment=True)
-=======
-            uuids = request.form.getlist('checkbox')
-            print(uuids)
-
-            master_t_list = []
-            for uuid in uuids:
-                meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
-                # print(meeting_inst)
-                t_list = Transcript.query.filter_by(uuid=uuid).all()
-                # print(t_list)
-                for idx, t in enumerate(t_list):
-                    p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
-                    # print(p_t_list)
-                    t_list[idx] = p_t_list
-                master_t_list.extend(t_list)
-            # print(master_t_list)
-
-            a_dict = {}
-            a_dict["speech_instances"] = speech_instances(master_t_list)
-            a_dict["silence_breaking"] = silence_breaking(master_t_list)
-            a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list)
-
-            print(speech_instances(master_t_list))
-            print(silence_breaking(master_t_list))
-            print(speech_durations(master_t_list))
-
-            return render_template("analysis.html", analysis=a_dict)
->>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
 
         return render_template("dashboard.html", meetings=meetings_dict)
     else:

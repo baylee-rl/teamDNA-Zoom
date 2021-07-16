@@ -163,13 +163,8 @@ div.meetings {
 .small-checkbox {
     display: block;
     position: relative;
-<<<<<<< HEAD
     top: 6.8vh;
     right: 2.3%;
-=======
-    top: 6vh;
-    right: 2.5%;
->>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
     cursor: pointer;
     -webkit-user-select: none;
     -moz-user-select: none;

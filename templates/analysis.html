@@ -1,23 +1,14 @@
 {% extends 'base.html' %}
-<<<<<<< HEAD
-=======
-
->>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
 {% block head %}
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='analysis.css') }}">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+</head>
 {% endblock %}
-<<<<<<< HEAD
 {% block title %}Analysis{% endblock %}
-=======
-
-{% block title %}Analysis{% endblock %}
-
->>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
 {% block content %}
 <div id="instances">
     <h6>Speech Instances</h6>
@@ -32,10 +23,13 @@
     {% endfor %}
 </div>
 <div id="distribution">
-    <h6>Distribution of Speaking</h6>
+    <h6>Distribution of Speaking Time (Percentage)</h6>
     {% for speaker in analysis["speech_distribution"] %}
         <p>{{speaker}}: {{ analysis["speech_distribution"][speaker] * 100 }}%</p>
     {% endfor %}
+    <div>
+        <canvas id="pie-chart" width="800" height="450"></canvas>
+    </div>
 </div>
 <div id="silence-breaking">
     <h6>Silence-Breaking</h6>
@@ -51,7 +45,6 @@
         </p>
     {% endfor %}
 </div>
-<<<<<<< HEAD
 <div id="network-analysis">
     <h6>Network Analysis</h6>
     <p>Center Degree: {{ analysis["center_deg"] }}</p>
@@ -59,11 +52,27 @@
 </div>
 
 {% endblock %}
-=======
-{% endblock %}
-
 
 {% block javascript %}
-    
+<script>
+
+new Chart(document.getElementById("pie-chart"), {
+    type: 'pie',
+    data: {
+      labels: {{ distribution[0]|tojson }},
+      datasets: [{
+        backgroundColor: ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850"],
+        data: {{ distribution[1]|tojson }}
+      }]
+    },
+    options: {
+      title: {
+        display: true,
+        text: 'Distribution of Speaking Time'
+      },
+    }
+});
+
+</script>
+
 {% endblock %}
->>>>>>> 16c8b9646aca90e6e55f581713144c49a1898374
