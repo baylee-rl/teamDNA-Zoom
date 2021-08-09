@@ -26,7 +26,7 @@ strong {
 }
 
 button {
-    width: 30%;
+    width: 36%;
     height: 2em;
     border: none;
     border-radius: 30px;
@@ -56,6 +56,7 @@ button:hover {
     text-align: center;
     transition: all 0.5s;
     margin-bottom: -1vh;
+    font-style: italic;
 }
 
 a#more-info:hover {
@@ -66,17 +67,19 @@ a#more-info:hover {
 #actions {
     text-decoration: none;
     font-family: "Montserrat", sans-serif;
-    font-size: 1.4vh;
+    font-size: 2vh;
     text-align: center;
-    margin-top: -0.8vh;
+    margin-top: -1.2vh;
+    margin-bottom: 4vh;
+    color: black;
 }
 
-#create-account {
+#sign-in {
     text-decoration: none;
     color: black;
 }
 
-#create-account:hover {
+#sign-in:hover {
     text-decoration: underline;
 }
 

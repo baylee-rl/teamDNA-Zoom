@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TeamDNA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&family=Signika+Negative:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="main">
+        <p>This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID, with no spaces, below.</p>
+        <br>
+        <form action="http://teamdna-zoom.herokuapp.com/received" method="POST">
+            <div id="form">
+                <label for="meetids">Meeting ID:</label>
+                <input type="text" name="meetids">
+            </div>
+            <br>
+            <input type="submit" id="submit" value="Submit">
+        </form>
+    </div>
+</body>
+
+</html>

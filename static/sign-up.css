@@ -114,6 +114,21 @@ button:hover {
     cursor: pointer;
 }
 
+p {
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: lighter;
+    font-size: small;
+}
+
+p a {
+    color: #2D8CFF;
+    transition: all 0.5s;
+}
+
+p a:hover {
+    color: black;
+}
 
 @media screen and (max-width: 1024px) {
     div#sign-up {
