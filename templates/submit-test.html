@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='submit.css') }}">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"
+    rel="stylesheet">
+
+{% endblock %}
+
+{% block title %}Submit a Meeting{% endblock %}
+
+{% block content %}
+<p id='intro'>This Zoom extension by TeamDNA is a work in progress. Please submit a meeting ID, with no spaces, below.
+</p>
+<br>
+<form action="{{ url_for('submit_test') }}">
+    <div id="form">
+        <label for="meetid">Meeting ID</label>
+        <input type="text" name="meetid"><br>
+        <label for="recipient">Recipient Email</label>
+        <input type="text" name="recipient">
+    </div>
+    <br>
+    <input type="submit" id="submit" value="Submit">
+    {% if meetings %}<p>Submission successful!</p>{% endif %}
+</form>
+<div id="dashboard">
+    <!-- Dashboard here -->
+    {% for meeting in meetings: %}
+    <div class="meeting-group">
+        <div class="meeting-header">
+            <h5>ID: {{ meeting }} | {{ meetings[meeting]["topic"] }}</h5>
+        </div>
+        <div class="meetings">
+            {% for uuid in meetings[meeting] if uuid not in ['host_id', 'topic']: %}
+
+            <div class="meeting-box">
+                <h6>{{ meetings[meeting][uuid]["timedate"] }}</h6>
+                <p><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="#1A5F89"
+                        class="bi bi-person-fill" viewBox="0 0 15 15" style="transform: translate(-2px, 4px)">
+                        <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H3zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                    </svg>
+                    {% for participant in meetings[meeting][uuid]["participants"] %}
+                    {% if loop.index == 5 %}
+                    ...
+                    {% elif loop.index > 5 %}
+
+                    {% elif loop.index == meetings[meeting][uuid]["participants"].keys()|length : %}
+                    {{ participant }}
+                    {% else %}
+                    {{ participant }},
+                    {% endif %}
+                    {% endfor %}
+                </p>
+                <p id="durations"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" fill="#1A5F89"
+                        class="bi bi-clock-fill" viewBox="0 0 17 17" style="transform: translate(-3px, 5px)">
+                        <path
+                            d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" />
+                    </svg>
+                    {{ meetings[meeting][uuid]["duration"] }} min.
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

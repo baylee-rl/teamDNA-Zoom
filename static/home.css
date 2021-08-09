@@ -1,0 +1,93 @@
+
+div#intro {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: -1vw;
+}
+
+h1#intro-header {                 
+    font-family: "Montserrat", sans-serif;
+    font-size: xx-large;
+    text-align: center;
+    margin-bottom: 4vh;
+}
+
+p {
+    margin-top: 6vh;
+    text-align: center;
+    font-family: "Montserrat", sans-serif;
+    color: #888;
+    font-style: italic;
+}
+
+strong {
+    color: #2D8CFF;
+    font-weight: bold;
+}
+
+button {
+    width: 36%;
+    height: 2em;
+    border: none;
+    border-radius: 30px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+button:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+#more-info {
+    text-decoration: none;
+    color: black;
+    font-family: "Montserrat", sans-serif;
+    font-size: 1.7vh;
+    text-align: center;
+    transition: all 0.5s;
+    margin-bottom: -1vh;
+    font-style: italic;
+}
+
+a#more-info:hover {
+    color: black;
+    text-decoration: underline;
+}
+
+#actions {
+    text-decoration: none;
+    font-family: "Montserrat", sans-serif;
+    font-size: 2vh;
+    text-align: center;
+    margin-top: -1.2vh;
+    margin-bottom: 4vh;
+    color: black;
+}
+
+#sign-in {
+    text-decoration: none;
+    color: black;
+}
+
+#sign-in:hover {
+    text-decoration: underline;
+}
+
+div#box {
+    width: 25%;
+    margin: auto;
+    margin-top: 10vh;
+    padding: 10vh 4vw;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px 0 lightgray, 0 6px 20px 0 lightgray;
+}

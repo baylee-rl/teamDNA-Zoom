@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='faq.css') }}">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"
+    rel="stylesheet">
+
+{% endblock %}
+
+{% block title %}Frequently Asked Questions{% endblock %}
+
+{% block content %}
+<h2>Frequently Asked Questions</h2>
+<div id="faq">
+    <h3>Q: How do I gain access to instructor privileges?</h3>
+    <p>A: Please email us at teamdna.help@gmail.com</p>
+    <br>
+    <h3>Q: Why aren't my meetings displaying on the Submit Meetings page?</h3>
+    <p>A: Please review the instructions on the <a href="{{ url_for('start_2') }}">'Getting Started'</a> page that
+        displayed when you signed up. If this does not
+        apply, check your <a href="zoom.us/recording">Cloud Recordings</a> in the Zoom Web Portal or
+        contact us.</p>
+    <br>
+    <h3>Q: Why am I not receiving any meetings as an instructor?</h3>
+    <p>A: First, another user must submit meetings to your account via their submission page, using the <small
+            style="font-size: medium; text-decoration: underline;">correct email associated with your account</small>.
+    </p>
+    <br>
+    <h3>Q: Why are there two instances of the same person in my analytics?</h3>
+    <p>A: This can sometimes occur if someone changes their display name from one meeting to another. To avoid this,
+        try to keep your name consistent in the meetings you attend. Also, try to ensure all participants are signed
+        into their Zoom accounts prior to the meeting.
+    </p>
+    <br>
+    <h3>Q: What will happen if there are two people in my meeting with the same name?</h3>
+    <p>A: As of now, if two people in the same meeting have the same display name, they will be viewed as the same
+        person by our web app. To prevent this, please ask the participants to somehow distinguish themselves in their
+        display names.</p>
+</div>
+{% endblock %}

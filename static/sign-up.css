@@ -1,0 +1,161 @@
+h2 {
+    font-family: "Montserrat", sans-serif;
+    font-size: xx-large;
+    text-align: center;
+    margin-top: 10vh;
+}
+
+div#sign-up {
+    width: 25%;
+    margin: auto;
+    margin-top: 10vh;
+    padding: 5vh 4vw;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 lightgray, 0 6px 20px 0 lightgray;
+}
+
+form {
+    font-family: "Montserrat";
+    font-size: medium;
+    line-height: 3.5vh;
+    color: rgb(95, 95, 95);
+}
+
+small {
+    margin-left: 0.5vw;
+    color: red;
+}
+
+input {
+    border: none;
+    border-bottom: 1px solid lightgray;
+    width: 100%;
+    height: 1em;
+    font-family: "Montserrat", sans-serif;
+    font-size: 15px;
+    margin-bottom: 1.5vh;
+}
+
+input:focus {
+    outline: none;
+    border-bottom: 1px solid #2D8CFF;
+}
+
+label {
+    margin-left: 0vw;
+    text-transform: capitalize;
+}
+
+div#check-pass, div#remember {
+    display: flex;
+    width: 100%;
+    font-size: small;
+    font-family: "Ubuntu";
+    font-weight: 300;
+    margin-top: -1.2vh;
+    margin-bottom: 0vh;
+}
+
+div#password-container {
+    flex-wrap: nowrap;
+}
+
+input[type=submit] {
+    width: 45%;
+    height: 1.8em;
+    border: none;
+    border-radius: 20px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 2.5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+input[type=submit]:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+
+input[type=checkbox] {
+    margin-top: 1.2vh;
+    margin-left: 0.4vw;
+    width: 3%;
+    transform: translate(0vw, -0.3vh);
+}
+
+button {
+    width: 18%;
+    height: 2.8em;
+    border: none;
+    border-radius: 30px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: larger;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 5vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+button:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}
+
+p {
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: lighter;
+    font-size: small;
+}
+
+p a {
+    color: #2D8CFF;
+    transition: all 0.5s;
+}
+
+p a:hover {
+    color: black;
+}
+
+@media screen and (max-width: 1024px) {
+    div#sign-up {
+        width: 50%;
+    }
+
+    button {
+        width: 30%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    div#sign-up {
+        width: 60%;
+    }
+
+    button {
+        width: 45%;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    div#sign-up {
+        width: 70%;
+    }
+
+    button {
+        width: 55%;
+    }
+}

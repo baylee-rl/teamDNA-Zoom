@@ -1,0 +1,32 @@
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='start.css') }}">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"
+    rel="stylesheet">
+
+{% endblock %}
+
+{% block title %}Getting Started{% endblock %}
+
+{% block content %}
+<div id="start">
+    <h1>Getting Started</h1>
+    <p>Before you start submitting or analyzing meetings, please follow these instructions to ensure your meetings will
+        work with our website.</p>
+    <p>1. <a href='https://zoom.us/signin' target="_blank" rel="noopener noreferrer">Sign in</a> to Zoom through your
+        web browser.</p>
+    <img src='/static/client/img/Screenshot 2021-07-29 130133.png'>
+    <p>2. After signing in, you'll be brought to the Meetings page. Click on "Settings" in the left hand panel.</p>
+    <img src='/static/client/img/Screenshot 2021-07-20 134623.png'>
+    <p>3. Once on the settings page, click "Recording" in the navigation bar.</p>
+    <img src='/static/client/img/Screenshot 2021-07-20 134648.png'>
+    <p>4. Locate the "Cloud Recording" heading. Toggle the switch next to it on if it is not already.</p>
+    <p>5. Toggle on the "Audio transcript" feature under "Advanced cloud recording settings".</p>
+    <img src='/static/client/img/Screenshot 2021-07-20 134715.png'>
+    <p>*Note: Without these settings enabled, recorded meetings cannot be submitted or analyzed. You must be the meeting
+        host and have recorded it to the cloud for a given meeting to submit successfully.</p>
+    <button onclick="location.href='{{ redirect }}'" type="button">Proceed to submit meetings.</button>
+</div>
+{% endblock %}
