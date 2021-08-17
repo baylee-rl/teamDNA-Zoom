@@ -17,7 +17,6 @@ import urllib.parse
 from collections import defaultdict
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, UserMixin, logout_user, current_user
-from flask_weasyprint import HTML, render_pdf
 import igraph
 import json
 import random
@@ -39,9 +38,9 @@ SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
 CLIENT_ID = config["CLIENT_ID"]
 CLIENT_SEC = config["CLIENT_SECRET"]
 SECRET_KEY = "123456"
-REDIRECT = "/submit"
+REDIRECT = "http://0c14c15b320b.ngrok.io/submit"
 OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
-SQLALCHEMY_DATABASE_URI = "postgres://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
+SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
 # to-do:
 # check if hash meeting works
@@ -211,7 +210,13 @@ class MeetingSubForm(FlaskForm):
 
 def api_refresh_check(response_data):
     """
-    checks response from an api call to see if refresh needed
+    Checks the response from a Zoom API call to see if the token needs to be refreshed
+
+    Inputs:
+        response_data -- respone object from a Zoom API call
+    
+    Outputs:
+        did_refresh -- boolean representing whether or not refresh_token was executed
     """
     did_refresh = False
     try:
@@ -220,7 +225,7 @@ def api_refresh_check(response_data):
                 refresh_token()
                 did_refresh = True
             except:
-                return None
+                pass
         else:
             pass
     except:
@@ -265,19 +270,21 @@ def get_access_token(auth_code):
     access_token = data["access_token"]
     r_token = data["refresh_token"]
 
-    # access_token_lst[0] = access_token
-    # r_token_lst[0] = r_token
-
     return access_token, r_token
 
-def refresh_token(r_token):
+def refresh_token():
     """
-    Used to refresh a user's access token once it has expired
+    Refreshes the logged in user's Zoom API access token
+
+    Inputs:
+        none, takes the current refresh token from session variables
+
+    Outputs:
+        new_access_token -- string, the fresh access token
+        new_r_token -- string, the fresh refresh token
     """
     
-    print("Refreshing...")
     r_token = session.get('r_token')
-    print(r_token)
 
     url = "https://zoom.us/oauth/token?grant_type=refresh_token&refresh_token=" + str(r_token)
 
@@ -291,16 +298,11 @@ def refresh_token(r_token):
 
     response = requests.post(url, headers=headers)
     data = response.json()
-    print('Response: ' + response.text)
 
     new_access_token = data["access_token"]
     new_r_token = data["refresh_token"]
 
-    print("New Access: " + new_access_token)
-
-    # access_token_lst[0] = new_access_token
-    # r_token_lst[0] = new_r_token
-
+    # saves new tokens in session variables
     session['a_token'] = new_access_token
     session['r_token'] = new_r_token
 
@@ -311,39 +313,46 @@ def refresh_token(r_token):
 
 def get_participants(uuid):
     """
-    Given a UUID, retrieves the participants list from Zoom and adds to DB
-    Also returns a list of participant names
+    Given a UUID of a Zoom meeting, retrieves the list of participants from Zoom and 
+    adds each participant to the database. Returns the list of participants' names.
+
+    Inputs:
+        uuid -- a string representing the UUID of a Zoom meeting
+
+    Outputs:
+        new_participants -- a list of the meeting participants' names
     """
     authorization = "Bearer " + session['a_token']
     headers = {"Authorization": authorization}
-    print(uuid)
+
     if (uuid[0] == "/") or ("//" in uuid):
-        print("Encoding...")
         uuid = urllib.parse.quote(uuid, safe='')
         uuid = urllib.parse.quote(uuid, safe='')
     url = "https://api.zoom.us/v2/past_meetings/" + uuid + "/participants"
     response = requests.get(url, headers=headers)
     participants_data = response.json()
 
+    # checks if the access token needs to be refreshed
     did_refresh = api_refresh_check(participants_data)
+
+    # if the token refreshed, makes the API call again
     if did_refresh:
         authorization = "Bearer " + session['a_token']
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         participants_data = response.json()
+    
     # prevents unfinished meetings from being included in dashboard
     if "code" in participants_data.keys():
         if participants_data["code"] == 3001:
             return False
-
-    print("Participants Data:")
-    print(participants_data['participants'])
 
     if len(participants_data["participants"]) == 0:
         return "error"
 
     new_participants = []
     for participant in participants_data['participants']:
+        # Zoom replaces commas in response with # symbol
         if "#" in participant["name"]:
             name = participant['name'].replace("#", ",")
         else:
@@ -354,86 +363,85 @@ def get_participants(uuid):
         email = participant["user_email"]
         new_participants.append(name)
 
-        print(name, id, email)
+        # print(name, id, email)
 
+        # searches for existing participant in database with this email
         new_participant = Participant.query.filter_by(email=email).first()
 
-        print('Participant: ')
-        print(new_participant)
+        # print('Participant: ')
+        # print(new_participant)
 
+        # retrieves the meeting instance from the database
         meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
 
-        print('Meeting: ')
-        print(meeting_inst)
+        # print('Meeting: ')
+        # print(meeting_inst)
 
         if new_participant and email != "":
-            print('case 1')
+            # if there is an existing Participant entry by this email, use this Participant
             meeting_inst.participants.append(new_participant)
             if new_participant.name != name and name not in [x.alias for x in new_participant.aliases]:
-                print('adding alias...')
-                print(new_participant.name)
-                print(name)
+                # if the names do not match up, add the new name as an Alias of the Participant
                 new_participant.aliases.append(Alias(name))
         elif Participant.query.filter_by(name=name).first():
-            print('case 2')
+            # if there is an existing Participant entry by this name, use this Participant
             meeting_inst.participants.append(Participant.query.filter_by(name=name).first())
             if Participant.query.filter_by(name=name).first().email == "":
+                # if the Participant did not have an email but they do in the response data, update their email
                 Participant.query.filter_by(name=name).first().email = email
         elif Alias.query.filter_by(alias=name).first():
-            print('case 3')
+            # if there is an existing Participant entry with this name as their Alias, use this Participant
             alias = Alias.query.filter_by(alias=name).first()
             a_participant = Participant.query.filter_by(id=alias.participant_id).first()
             meeting_inst.participants.append(a_participant)
         else:
-            print('case 4')
-            print(id, email, name)
+            # otherwise, add a new Participant entry with this information
+            # print(id, email, name)
             meeting_inst.participants.append(Participant(id, name, email))
         
-    print("All participants added to database")
+    # print("All participants added to database")
     db.session.commit()
     return new_participants
 
-
 def get_recordings(meeting_id, startdate, enddate):
+    """    
+    Retrieves from Zoom all meeting instances under the input meeting ID recorded between startdate and enddate.
+    Adds meeting and meeting instance entries to database. Executes get_participants on each meeting instance.
+    Retrieves transcript files for each meeting instance, executes parse_transcript on each, and adds transcript and transcript blocks to database.
+    
+    Inputs:
+        meeting_id -- string, the ID of a Zoom meeting (from Zoom)
+        startdate -- string in ISO format, representing first day to check for recordings
+        enddate -- string in ISO format, representing last day to check for recordings (must be within 30 days of startdate)
     """
-    given a meeting ID, retrieves all information from Zoom and adds information to respective DB tables
-    returns a dictionary mapping meeting IDs to UUIDs, host_id, topic, and UUIDs map to start_time, duration, and participants (for display)
-    startdate should be a timedelta within 30 days in isoformat
-    """
-    print("Using access token: " + session['a_token'])
+    # print("Using access token: " + session['a_token'])
     authorization = "Bearer " + session['a_token']
 
     headers = {"Authorization": authorization}
 
-    # if user has too many meetings, not all will be displayed -- see documentation
-    # can only display last 30 days of meetings -- api limitation
-    # one_month = (startdate+timedelta(days=30)).isoformat()
-    
-    url = "https://api.zoom.us/v2/users/me/recordings?from=" + startdate + "&to=" + enddate
+    # default number of records displayed is 30 -- page_size parameter increases this to the max, 300
+    # can only display up to 1 month of meetings    
+    url = "https://api.zoom.us/v2/users/me/recordings?from=" + startdate + "&to=" + enddate + "&page_size=" + str(300)
     response = requests.get(url, headers=headers)
     data = response.json()
+
+    # checks if the token needs to be refreshed
     did_refresh = api_refresh_check(data)
+    # if the token refreshed, makes the API call again
     if did_refresh:
         authorization = "Bearer " + session['a_token']
         headers = {"Authorization": authorization}
         response = requests.get(url, headers=headers)
         data = response.json()
-    elif did_refresh == None:
-        return None
 
     meetings = data["meetings"]
-    meetings_dict = {meeting_id : {}}
-    m_data = meetings_dict[meeting_id]
-
 
     for meeting in meetings:
-        # finds all meeting instances matching meeting ID
+        # finds all meeting instances matching input meeting ID
         if str(meeting['id']) == meeting_id:
             topic = meeting['topic']
 
-            m_data['topic'] = topic
-
-            #add to new meetings to meetings table
+            # adds the meeting assoc. w/ input meeting ID to meetings table in DB if does not exist
             if Meeting.query.filter_by(id=meeting_id).first() == None:
                 new_meeting = Meeting(meeting_id, topic)
                 db.session.add(new_meeting)
@@ -441,58 +449,55 @@ def get_recordings(meeting_id, startdate, enddate):
 
             uuid = meeting['uuid']
 
-            print(uuid)
-
-            m_data[uuid] = {}
-
             duration = meeting['duration']
             timedate = meeting["start_time"]
             timedate = timedate.replace("T", " ")
             timedate = timedate.replace("Z", " GMT")
 
-            m_data[uuid]['duration'] = duration
-            m_data[uuid]['start_time'] = timedate
-
             transcripts = []
             transcript_found = False
             for file in meeting['recording_files']:
+                # looks for at least one transcript file for this meeting instance
                 if file["file_type"] == "TRANSCRIPT":
-                    print("Transcript found")
+                    # print("Transcript found")
                     transcript_found = True
                     transcripts.append(file["download_url"])
             if transcript_found == True:
                 # add UUIDs/Meeting Insts for meetings w/ transcripts available
+                # if no transcripts are found, the meeting instance is not relevant
                 if Meeting_Inst.query.filter_by(uuid=uuid).first() == None:
+                    # add to the DB if the meeting instance has not been added yet
                     meeting_inst = Meeting_Inst(uuid, meeting_id, duration, timedate)
                     db.session.add(meeting_inst)
-
-                    print("UUID successfully added")
 
                     # retrieve participants and add to DB
                     participants = get_participants(uuid)
                     if participants == 'error':
+                        # if the participants list is bugged, remove the meeting instance from the DB to avoid errors
                         Meeting_Inst.query.filter_by(uuid=uuid).delete()
                         db.session.commit()
                         continue
                     else:
-                        m_data[uuid]['participants'] = participants
                         db.session.commit()
 
                 # Parse and add to DB any new transcripts
                 if Transcript.query.filter_by(uuid=uuid).all() == []:
-                    print("no transcripts yet :)")
+                    # print("no transcripts yet :)")
                     for file in transcripts:
-                        print("Downloading...")
+                        # print("Downloading...")
 
+                        # create download URL for the transcript
                         dl_url = file + "?access_token=" + session['a_token']
+
+                        # retrieves the transcript as text/string
                         response = requests.get(dl_url, stream=True)
 
                         #add transcript to DB
                         transcript = Transcript(uuid, response.text)
-                        print(transcript)
                         db.session.add(transcript)
                         db.session.commit()
-                        print("Transcript added to DB")
+
+                        # creates list of Transcript Block objects
                         p_transcript = parse_transcript(transcript.id, response.text)
 
                         #add parsed transcript to DB
@@ -503,9 +508,14 @@ def get_recordings(meeting_id, startdate, enddate):
 
 def host_retrieve():
     """
-    retrieves submitted meeting info for current user to display
-    returns a dictionary containing each meeting ID mapped to its topic and UUIDs,
-    and each UUID mapped to its start_time, duration, and participants' names
+    Retrieves the meetings for which the current user is the host, and 
+    retrieves all respective data from the database to display on the Submit page
+
+    Outputs:
+        meetings_dict -- a dictionary; outer keys are meeting IDs each associated to dict; 
+        inner dict has a key, "topic", associated w/ meeting topic, and UUID keys each associated w/ dict;
+        innermost dicts have three keys - "start_time" and "duration" are associated w/ single values, and 
+        "participants" is associated w/ a list of strings
     """
     curr_id = current_user.id
     hosted_meetings = Meeting.query.filter_by(host_id=curr_id).all()
@@ -529,14 +539,28 @@ def host_retrieve():
     return meetings_dict
 
 def host_refresh():
+    """
+    Retrieves all meetings for which the current user is the host, and
+    re-runs get_recordings for each to check for new recordings.
+    """
     curr_id = current_user.id
     hosted_meetings = Meeting.query.filter_by(host_id=curr_id).all()
 
     for meeting in hosted_meetings:
         get_recordings(meeting.id)
 
+    return
+
 def instructor_retrieve():
     """
+    Retrieves all meetings that the current user has been sent/submitted (instructor or admin role required), and 
+    retrieves all respective data from the database to display on the Dashboard page
+
+    Outputs:
+        meetings_dict -- a dictionary; outer keys are meeting IDs each associated to dict; 
+        inner dict has two keys associated w/ single values, "host" and "topic", and UUID keys each associated w/ dict;
+        innermost dicts have three keys - "start_time" and "duration" are associated w/ single values, and 
+        "participants" is associated w/ a list of strings
     """
     if current_user.role not in ["Instructor", "Admin"]:
         return None
@@ -567,50 +591,76 @@ def instructor_retrieve():
     return meetings_dict
 
 def transcript_write_to_file(transcript_id):
+    """
+    Retrieves a transcript from the database and writes it to a local file.
+    Returns the respective filename.
+
+    Inputs:
+        transcript_id -- an integer associated with a transcript in the database
+    
+    Outputs:
+        filepath -- a string representing the filepath for the new transcript file
+    """
     transcript = Transcript.query.filter_by(id=transcript_id).first()
     uuid = transcript.uuid
     transcript = transcript.transcript
     meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
     timedate = meeting_inst.start_time
 
-    with open("static/client/txt/%s_%d.txt" % (timedate, transcript_id), "w") as file:
+    filepath = "static/client/txt/%s_%d.txt" % (timedate, transcript_id)
+
+    with open(filepath, "w") as file:
         file.write(transcript)
 
-    return "static/client/txt/%s_%d.txt" % (timedate, transcript_id)
+    return filepath
 
 # parsing
 
 def parse_transcript(transcript_id, transcript):
     """
+    Parses the full transcript into individual Transcript_Block objects and adds them to the database.
+
     Inputs:
-        transcript, a string
-    Returns a list of Transcript_Block objects
+        transcript_id -- an integer associated with a transcript in the database
+        transcript -- a string containing the full Zoom transcript
+    Outputs:
+        p_transcript -- a list containing Transcript_Block objects
     """
+    # splits transcript into lines
     split_transcript = transcript.split("\r\n")
     p_transcript = []
-    # print(split_transcript)
+
+    # iterates through each line of the transcript
     for idx, line in enumerate(split_transcript):
+        # skips first line
         if idx == 0:
             continue
         elif line == "WEBVTT":
             continue
+        # initializes empty block
         block = Transcript_Block(transcript_id)
         if line == "":
             if idx == len(split_transcript) - 1 or idx == len(split_transcript) - 2:
                 continue
+
             block.sequence = int(split_transcript[idx + 1])
             timestamp = split_transcript[idx + 2].split(" --> ")
+
+            # use timedelta values for computations later
             t1 = datetime.strptime(timestamp[0], "%H:%M:%S.%f")
             t2 = datetime.strptime(timestamp[1], "%H:%M:%S.%f")
             block.starttime = timedelta(hours=t1.hour, minutes=t1.minute, seconds=t1.second)
             block.endtime = timedelta(hours=t2.hour, minutes=t2.minute, seconds=t2.second)
 
             name_text = split_transcript[idx + 3].split(": ")
+
+            # some lines do not contain a name, resulting in len = 1
             if len(name_text) == 1:
                 if idx == 1:
                     continue
-
                 text = split_transcript[idx + 3].split(": ")[0]
+                
+                # start from the current line and traverse backwards to find the speaker
                 for line in reversed(split_transcript[:(idx + 1)]):
                     if len(line.split(": ")) == 2:
                         name = line.split(": ")[0]
@@ -628,67 +678,33 @@ def parse_transcript(transcript_id, transcript):
 
     return p_transcript
 
-def meetings_compilation(given_uuids, meetings_dict):
-    """
-    Inputs: 
-        given_uuids -- a list of uuids collected from dashboard inputs 
-        meetings_dict -- dictionary of meeting information 
-    Returns:
-        transcript_collection -- a list of trascripts form selected meetings formatted so that 
-        it can be inputted into any analysis function 
-    """
-    # list of p_transcript blocks, no seperation between uuids
-    # will be formatted so that it can be inputted as "transcript_list" in analysis functions
-    transcript_collection = []
-    for meeting in meetings_dict:
-        for uuid in meetings_dict[meeting].keys():
-            if uuid in given_uuids:
-                # add to t_list
-                for transcript in meetings_dict[meeting][uuid]["transcripts"]:
-                    transcript_instance = transcript
-                    transcript_collection.append(transcript)
-
-    return transcript_collection
-
 # analysis
-
-# def get_graph(transcript_list):
-    """
-    # create adjacency matrix as dict
-    ad_mat = {}
-    for p_transcript in transcript_list:
-        for block in range(len(p_transcript)-1):
-            if p_transcript[block][2] not in ad_mat:
-                ad_mat[p_transcript[block][2]] = {}
-            if p_transcript[block + 1][2] not in ad_mat[p_transcript[block][2]]:
-                # initialize one turn 
-                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] = 1
-            else: 
-                ad_mat[p_transcript[block][2]][p_transcript[block + 1][2]] += 1
-                
-    # recreate the matrix as list of list 
-    # use igraph.Graph.Adjacency for adjacency --> graph     Weighted!!!!
-    # rename nodes from dict indexes/names 
-
-    """
-
 
 def speech_instances(transcript_list, participants):
     """
+    Counts the number of times each participant spoke in the recording
+    
+    Inputs: 
+        transcript_list -- a list of transcript block objects
+        participants -- a list of participants
+    Outputs:
+        speech_nums -- a dictionary containing the speakers as keys and how many times they spoke as values 
     """
     speech_nums = {}
-
+    # stark by intializing that all participats spoke at least 0 times (helps with aliases)
     for participant in participants:
         speech_nums[participant] = 0
-
+    # look through each speach block 
     for p_transcript in transcript_list:
         for block in p_transcript:
+            # add to participant key value each time they speak
             if block.speaker in speech_nums.keys():
                 speech_nums[block.speaker] += 1
             else:
                 speech_nums[block.speaker] = 1
-
+    # copy speech_nums to modify 
     speech_nums_copy = speech_nums.copy()
+    # look for aliases 
     for participant in speech_nums_copy.keys():
         p = Participant.query.filter_by(name=participant).first()
         if p:
@@ -702,12 +718,19 @@ def speech_instances(transcript_list, participants):
 
 def silence_breaking(transcript_list):
     """
+    Computes values related to durations of silence in the transcript
+
+    Inputs:
+        transcript_list -- a list of Transcript Block objects
+    Outputs:
+        breaks -- a dictionary containing each speaker as a key associated with an inner dict; 
+        each inner dict contains the keys "total-breaks", "total-starts", "avg-break", "2.5", "5", "7.5", "10", and "times";    
     """
-    # breaks = {2.5 = {sophia = {4}, baylee = {3}}, 5 = {tina = 2}, 10 = {}, times = {sophia = [], tina = []}, total = {[]}}}
     breaks = {}
 
     for p_transcript in transcript_list:
         for idx, block in enumerate(p_transcript):
+            # skips the first iteration b/c checking pairs
             if idx == 0:
                 continue
             prev_tstamp = p_transcript[idx-1].endtime
@@ -716,6 +739,7 @@ def silence_breaking(transcript_list):
             curr_speaker = block.speaker
             silence_dur = curr_tstamp - prev_tstamp
             if silence_dur >= timedelta(seconds=2.5):
+                # initialize previous and current speaker if new
                 if prev_speaker not in breaks:
                     breaks[prev_speaker] = {"total-breaks":0, "total-starts":0, "avg-break":timedelta(seconds=0), 2.5:0, 5:0, 7.5:0, 10:0, "times":[]}
                 if curr_speaker not in breaks:
@@ -744,13 +768,16 @@ def silence_breaking(transcript_list):
                     breaks[curr_speaker][2.5] += 1
                     breaks[curr_speaker]["times"].append(silence_dur)
 
+    # copy of dictionary to iterate over while changing original
     breaks_copy = breaks.copy()
     for participant in breaks_copy.keys():
+        # find participant by this name
         p = Participant.query.filter_by(name=participant).first()
         if p:
             aliases = [x.alias for x in p.aliases]
             for alias in aliases:
                 if alias in breaks.keys():
+                    # if this person's alias also appears, combine them under original name & delete alias key
                     for key in breaks[participant].keys():
                         if key == "times":
                             breaks[participant]["times"].extend(breaks[alias]["times"])
@@ -758,6 +785,7 @@ def silence_breaking(transcript_list):
                             breaks[participant][key] += breaks[alias][key]
                     del breaks[alias]
 
+    # calculate average silence duration before break for each participant
     for participant in breaks:
         times_list = breaks[participant]["times"]
         if len(times_list) == 0:
@@ -766,15 +794,25 @@ def silence_breaking(transcript_list):
             continue
         average = sum(times_list, timedelta()) / len(times_list)
         breaks[participant]["avg-break"] = average
-    # print(breaks)
+
     return breaks
        
 def speech_durations(transcript_list, participants):
     """
     Calculates duration each participant spoke and distribution of speaking time
+
+    Inputs:
+        transcript_list -- a list of transcript block objects
+        participants -- a list of participants' names (strings)
+    Outputs:
+        durations -- a dictionary containing each participant's name (string) as a key 
+        associated with their speaking duration (timedelta)
+        distribution -- a dictionary containing each participant's name (string) as a key
+        associated with their percentage (float) of the total speaking time
     """
     durations = {}
 
+    # initialize all values to 0 seconds
     for participant in participants:
         durations[participant] = timedelta(0)
 
@@ -782,17 +820,22 @@ def speech_durations(transcript_list, participants):
         for block in p_transcript:
             tstamp1 = block.starttime
             tstamp2 = block.endtime
+
+            # calculate duration of speaking
             partial_duration = abs(tstamp1 - tstamp2)
             if block.speaker in durations.keys():
                 durations[block.speaker] += partial_duration
             else:
                 durations[block.speaker] = partial_duration
 
+    # copy of dictionary to iterate over while changing original
     durations_copy = durations.copy()
     for participant in durations_copy.keys():
+        # find participant by this name
         p = Participant.query.filter_by(name=participant).first()
         if p:
             aliases = [x.alias for x in p.aliases]
+            # if this person's alias also appears in the dict, combine them under original name & delete alias key
             for alias in aliases:
                 if alias in durations.keys():
                     durations[participant] += durations[alias]
@@ -810,42 +853,68 @@ def speech_durations(transcript_list, participants):
     return durations, distribution
 
 def get_graph(transcript_list, participants):
+    """
+    Creates multiple graphical representations of meeting transcripts, along with network statistics
+
+    Inputs: 
+        transcript_list -- a list of transcript block objects
+        participants -- a list of participants' names
+    Returns:
+        ad_mat -- the graph's adjacency matrix as a dictionary
+        ad_list --  graph's adjacency matrix as a list
+        g -- an igraph graph object mapping the transcript's interactions
+        edge_density -- the total number of edge connections between vertices divided by the total possible number of edges
+        centr_degree -- the number of edges connected to each node
+    """
     # create adjacency matrix as dict
     ad_mat = {}
+    # create adjacency matrix as list
     ad_list = []
-    index = 0
+    # indexes must be tracked for igraph functions 
+    index = 0 
+    # for final edge_deg calculation
     edge_tot = 0
     for p_transcript in transcript_list:
+        # analize each speach instance
         for idx, block in enumerate(p_transcript):
+            # the last speaker ends the meeting, does not speak to anybody else
             if idx == len(p_transcript) - 1:
                 continue
+            # tracks who(curr_speaker) is speaking to who(next_speaker)
             curr_speaker = block.speaker
             next_speaker = p_transcript[idx+1].speaker
+            # adds previously silent speaker to adacency mat
             if curr_speaker not in ad_mat:
                 ad_mat[curr_speaker] = {}
+                # for ad_list
                 ad_mat[curr_speaker]['index'] = index
                 index += 1
+            # adds previously silent speaker to adacency mat this time if never spoken to before
             if next_speaker not in ad_mat[curr_speaker]:
                 # initialize one turn and the edge
                 if curr_speaker != next_speaker:
                     edge_tot += 1
                 ad_mat[curr_speaker][next_speaker] = 1
             else:
+                # add one edge degree
                 ad_mat[curr_speaker][next_speaker] += 1
             if next_speaker not in ad_mat:
+                # add speaker as a new node 
                 ad_mat[next_speaker] = {'index' : index}
                 index += 1
+    # start ad list construction from ad_mat
     for speaker_1 in ad_mat:
         ad_list.append([])
     for i in range(len(ad_list)):
         for speaker_1 in ad_mat:
             ad_list[i].append(0)
-    # print (ad_list)
     for speaker_1 in ad_mat:
+        # add all adjacent nodes to list as neighbors, skipping index place holders
         for speaker_2 in ad_mat[speaker_1]:
             if speaker_2 == 'index':
                 continue
             ad_list[ad_mat[speaker_1]['index']][ad_mat[speaker_2]['index']] = ad_mat[speaker_1][speaker_2]
+    #create igraph graph object using ad_list as input
     g = igraph.Graph.Weighted_Adjacency(ad_list, mode='directed', attr='weight', loops=True)
     # retroactive addition of non-speakers
     speaker_list = []
@@ -858,8 +927,9 @@ def get_graph(transcript_list, participants):
         if participant not in speaker_list:
             g.add_vertex(name=participant)
             #g.add_edge(participant, ad_mat.keys[0] , weight=None)
-
+    # modify ad_mat for later reference in graph_to_json
     ad_mat_copy = deepcopy(ad_mat)
+    # Address ailiasing  
     for speaker1 in ad_mat_copy.keys():
         for speaker2 in ad_mat_copy[speaker1].keys():
             if speaker2 == "index":
@@ -895,7 +965,6 @@ def get_graph(transcript_list, participants):
                             ad_mat[speaker1][key] = ad_mat[alias][key]
                     del ad_mat[alias]
                         
-    print(ad_mat)
     # edge_density = edge_tot/(len(participants)*(len(participants)-1))
     edge_density = 0
     # centr_degree = edge_tot
@@ -904,6 +973,16 @@ def get_graph(transcript_list, participants):
     return ad_mat, ad_list, g, edge_density, centr_degree
 
 def strength(g, ad_mat):
+    """
+    Finds each participant's node degree
+
+    Inputs: 
+        ad_mat -- the graph's adjacency matrix as a dictionary
+        g -- an igraph graph object
+    Returns: 
+        degree_mat -- a dictionary with participants' names as keys and their node degrees as values
+    """
+    # finds each participant's node degree
     degree_mat = {}
     for participant in g.vs['name']:
         degree_mat[participant] = 0
@@ -916,35 +995,45 @@ def strength(g, ad_mat):
     return degree_mat
 
 def graph_to_json(ad_mat, degree_mat):
+    """
+    Creates a json object for the SigmaJS network graph using computed values from get_graph and
+    writes it to the network.json local file
+
+    Inputs:
+        ad_mat -- a dictionary representing the graph's adjacency matrix
+        degree_matrix -- a dictionary representing the graph's degree matrix 
+    """
     nodes = []
     edges = []
+
+    # each key in degree_mat is a node in the graph
     for idx, node in enumerate(degree_mat.keys()):
         node_vals = {"id":node, "label": node, "x": random.random(), "y": random.random(), "size": degree_mat[node]}
         nodes.append(node_vals)
+        # just in case node does not also appear in ad_mat (should be fixed?)
         try:
             for idx2, node2 in enumerate(ad_mat[node].keys()):
                 if node2 == "index":
                     continue
                 edge_name = node + node2
                 size = ad_mat[node][node2]
-                # print("Size: " + str(size))
                 edge_vals = {"id" : edge_name, "label": size, "source" : node, "target" : node2, "type": "curvedArrow"}
                 edges.append(edge_vals)
         except KeyError:
             continue
     
+    # overwrites network.json file each time analysis is done
     fh = open("static/client/json/network.json", "w")
     fh.write(json.dumps({"nodes": nodes, "edges": edges}))
     fh.close()
 
-    return {"nodes": nodes, "edges": edges}
+    return 
 
 
 # FLASK GLOBALS #
 @app.context_processor
 def inject_redirect_url():
     return dict(redirect=OAUTH)
-
 
 # LOGIN MANAGER #
 @login_manager.user_loader
@@ -1283,10 +1372,35 @@ def dashboard():
     else:
         return redirect(url_for('home'))
 
-@app.route('/admin')
+@app.route('/admin', methods=["GET", "POST"])
 @login_required
 def admin():
     if current_user.role == "Admin":
+
+        if request.method == 'POST':
+            user_ids = request.form.getlist('checkbox')
+            if len(user_ids) == 0:
+                return render_template("admin.html", users=users, error="no-users")
+
+            if 'instructor' in request.form:
+                for user_id in user_ids:
+                    user = User.query.filter_by(id=user_id).first()
+                    user.role = "Instructor"
+                db.session.commit()
+            elif 'admin' in request.form:
+                for user_id in user_ids:
+                    user = User.query.filter_by(id=user_id).first()
+                    user.role = "Admin"
+                db.session.commit()
+            elif 'user' in request.form:
+                for user_id in user_ids:
+                    user = User.query.filter_by(id=user_id).first()
+                    user.role = "User"
+                db.session.commit()
+
+            users = User.query.all()
+
+            return render_template("admin.html", users=users)
 
         users = User.query.all()
 
@@ -1303,6 +1417,7 @@ def submit_test():
     test_meetings_dict["9876543"]["hjFDbEUTYZOs=="] = {"duration":46, "timedate":"2021-06-07 18:54:25 GMT", "participants":{"Baylee Keevan":"bjk9@rice.edu", "Sophia Rohlfsen":"", "Tina Wen":"", "Margaret Beier":"", "Matthew Wettergreen":"", "Ashu Sabharwal":'', "Matt Barnett":""}}
     
     return render_template("submit-test.html", meetings = test_meetings_dict)
+
 
 
 if __name__ == "__main__":

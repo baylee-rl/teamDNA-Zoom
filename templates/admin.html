@@ -12,27 +12,34 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block content %}
+<form method="post">
+    <h2>Site Users</h2>
+    <div id='buttons'>
+        <input type="submit" id="instructor" value="Make Instructor" name="instructor">
+        <input type="submit" id="admin" value="Make Admin" name="admin">
+        <input type="submit" id="user" value="Make User" name="user">
+    </div>
 <table id="user-pane">
-    <caption>Site Users</caption>
-    <col style="width:60%">
-	<col style="width:25%">
-	<col style="width:15%">
+    <col style="width:5%">
+    <col style="width:63%">
+	<col style="width:32%">
     <tr>
+        <th></th>
         <th>Email</th>
         <th>Role</th>
-        <th class="actions">Actions</th>
     </tr>
     {% for user in users %}
         <tr>
+            <td><label class="small-checkbox">
+                <input type="checkbox" name="checkbox" class="checkbox" value="{{ user.id }}">
+                <span class="checkmark"></span>
+            </label></td>
             <td>{{ user.email }}</td>
             <td>{{ user.role }}</td>
-            <td>
-                <span class="small material-icons">person_remove</span>
-            </td>
         </tr>
     {% endfor %}
-
-</div>
+</table>
+</form>
 
 {% endblock %}
 

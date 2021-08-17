@@ -24,3 +24,38 @@ td, th {
 tr:nth-child(even) {
     background-color: #eee;
 }
+
+div#buttons {
+    display: flex;
+    justify-content: center;
+    margin-bottom: -2vh;
+}
+
+h2 {
+    font-family: 'Open Sans', sans-serif;
+    text-align: center;
+    margin-bottom: auto;
+}
+
+input[type=submit] {
+    width: 8vw;
+    height: 1.8em;
+    border: none;
+    border-radius: 20px;
+    font-family: "Ubuntu", sans-serif;
+    font-size: 17px;
+    font-weight: 500;
+    background-color: #2D8CFF;
+    color: white;
+    margin-top: 2.5vh;
+    display: block;
+    margin-left: 0.7vw;
+    margin-right: 0.7vw;
+    transition: background-color 0.5s, color 0.5s;
+}
+
+input[type=submit]:hover {
+    background-color: #BCE4F0;
+    color: #1A5F89;
+    cursor: pointer;
+}

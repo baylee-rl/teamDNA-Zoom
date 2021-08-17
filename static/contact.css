@@ -1,33 +1,86 @@
-/* Style inputs with type="text", select elements and textareas */
-input[type=text], select, textarea {
-  width: 100%; /* Full width */
-  padding: 12px; /* Some padding */ 
-  border: 1px solid #ccc; /* Gray border */
-  border-radius: 4px; /* Rounded borders */
-  box-sizing: border-box; /* Make sure that padding and width stays in place */
-  margin-top: 6px; /* Add a top margin */
-  margin-bottom: 16px; /* Bottom margin */
-  resize: vertical /* Allow the user to vertically resize the textarea (not horizontally) */
+body {
+  width: 100%;
 }
 
-/* Style the submit button with a specific background color etc */
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  text-align: left;
+  margin-bottom: -3.2vh;
+  margin-left: 0.5vw;
+}
+
+div.container {
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+form {
+  margin-top: 5vh;
+  width: 100%;
+  font-family: 'Open Sans', sans-serif;
+  line-height: 2.2em;
+}
+
+fieldset {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid lightgray;
+  border-radius: 7px;
+  padding: 0.8% 1.5% 1.5% 1.5%;
+}
+
+fieldset label {
+  font-size: 1.7vh;
+
+}
+
+fieldset input {
+  border: 1px solid lightgrey;
+  border-radius: 7px;
+  height: 1.8em;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 1.4vh;
+}
+
+fieldset input:focus-visible {
+  outline: #2D8CFF auto 1px;
+  outline-offset: 0;
+}
+
+fieldset textarea:focus-visible {
+  outline: #2D8CFF auto 1px;
+  outline-offset: 0;
+}
+
+fieldset textarea {
+  border: 1px solid lightgrey;
+  border-radius: 7px;
+  font-family: 'Open Sans', sans-serif;
+  padding: 0.3vw;
+  font-size: 1.4vh;
+  margin-bottom: 0.2vh;
+}
+
 input[type=submit] {
-  background-color: #04AA6D;
-  color: white;
-  padding: 12px 20px;
+  width: 15%;
+  height: 1.8em;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  border-radius: 20px;
+  font-family: "Ubuntu", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  background-color: #2D8CFF;
+  color: white;
+  margin-top: 2.5vh;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.5s, color 0.5s;
 }
 
-/* When moving the mouse over the submit button, add a darker green color */
 input[type=submit]:hover {
-  background-color: #45a049;
-}
-
-/* Add a background color and some padding around the form */
-.container {
-  border-radius: 5px;
-  background-color: #f2f2f2;
-  padding: 20px;
+  background-color: #BCE4F0;
+  color: #1A5F89;
+  cursor: pointer;
 }
