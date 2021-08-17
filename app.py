@@ -23,7 +23,6 @@ import random
 from copy import deepcopy
 config = dotenv_values(".env")
 
-"""
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SEC = os.environ.get('CLIENT_SECRET')
@@ -32,15 +31,7 @@ REDIRECT = "https://teamdna-zoom.herokuapp.com/submit"
 OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT_ID + "&redirect_uri=" + REDIRECT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
-"""
 
-# DEVELOPMENT #
-CLIENT_ID = config["CLIENT_ID"]
-CLIENT_SEC = config["CLIENT_SECRET"]
-SECRET_KEY = "123456"
-REDIRECT = "http://0c14c15b320b.ngrok.io/submit"
-OAUTH = "https://zoom.us/oauth/authorize?client_id=" + CLIENT_ID + "&response_type=code&redirect_uri=" + REDIRECT
-SQLALCHEMY_DATABASE_URI = "postgresql://pnwiidloootbbg:f2d443b6e8d1be49552d82f5f3d6a04f5778e6f961cbf3e692a2cbedb2bf4109@ec2-35-171-250-21.compute-1.amazonaws.com:5432/dd6js34o51tiba"
 
 # to-do:
 # check if hash meeting works
