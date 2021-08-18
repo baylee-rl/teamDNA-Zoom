@@ -7,7 +7,10 @@
 <link
     href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap"
     rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.2/chartjs-plugin-annotation.min.js"
+    integrity="sha512-FuXN8O36qmtA+vRJyRoAxPcThh/1KJJp7WSRnjCpqA+13HYGrSWiyzrCHalCWi42L5qH1jt88lX5wy5JyFxhfQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnout.com/sigma.js/"></script>
 <script src="https://cdnout.com/sigma.js/plugins/sigma.parsers.json.min.js"></script>
 <script src="https://cdnout.com/sigma.js/plugins/sigma.layout.forceAtlas2.min.js"></script>
@@ -28,63 +31,54 @@
 <div id="main">
     <div id="instances">
         <h6>Speech Instances</h6>
-        {% for speaker in analysis["speech_instances"] %}
-        <p>{{ speaker }}: Spoke {{ analysis["speech_instances"][speaker] }} times</p>
-        {% endfor %}
         <canvas id="bar-chart" width="500px" height="300px"></canvas>
     </div>
     <div id="durations">
-        <h6>Speech Durations</h6>
-        {% for speaker in analysis["speech_durations"] %}
-        <p>{{speaker}}: {{analysis["speech_durations"][speaker]}}</p>
-        {% endfor %}
+        <h6>Speech Durations (Seconds)</h6>
+        <canvas id="bar-chart2" width="500px" height="300px"></canvas>
     </div>
     <div id="distribution">
         <h6>Distribution of Speaking Time (Percentage)</h6>
-        {% for speaker in analysis["speech_distribution"] %}
-        <p>{{speaker}}: {{ "{:.2f}".format(analysis["speech_distribution"][speaker] * 100) }}%</p>
-        {% endfor %}
         <div>
             <canvas id="pie-chart" width="800" height="450"></canvas>
         </div>
     </div>
     <div id="silence-breaking">
         <h6>Silence-Breaking</h6>
-        {% for speaker in analysis["silence_breaking"] %}
-        <p>{{speaker}}:
-            {% for metric in analysis["silence_breaking"][speaker] if metric != "times": %}
-            {% if loop.index == analysis["silence_breaking"][speaker]|length - 1 : %}
-            {{metric}}: {{analysis["silence_breaking"][speaker][metric]}}
-            {% else %}
-            {{metric}}: {{analysis["silence_breaking"][speaker][metric]}},
-            {% endif %}
+        <table>
+            <col style="width:20%">
+            <tr>
+                <th>Participants</th>
+                <th>Silence Breaks</th>
+                <th>Silence Starts</th>
+                <th>Average Break</th>
+                <th>2.5s-5s Breaks</th>
+                <th>5s-7.5s Breaks</th>
+                <th>7.5s-10s Breaks</th>
+                <th>10s+ Breaks</th>
+            </tr>
+            {% for speaker in analysis["silence_breaking"] %}
+            <tr>
+                <td>{{speaker}}</td>
+                <td>{{analysis["silence_breaking"][speaker]["total-breaks"]}}</td>
+                <td>{{analysis["silence_breaking"][speaker]["total-starts"]}}</td>
+                <td>{{analysis["silence_breaking"][speaker]["avg-break"]}}</td>
+                <td>{{analysis["silence_breaking"][speaker][2.5]}}</td>
+                <td>{{analysis["silence_breaking"][speaker][5]}}</td>
+                <td>{{analysis["silence_breaking"][speaker][7.5]}}</td>
+                <td>{{analysis["silence_breaking"][speaker][10]}}</td>
+            </tr>
             {% endfor %}
-        </p>
-        {% endfor %}
+        </table>
     </div>
     <div id="network-analysis">
-        <h6>Network Analysis</h6>
-        <p>Center Degree: {{ analysis["center_deg"] }}</p>
-        <p>Edge Density: {{ analysis["edge_density"] }}</p>
+        <h6>Network Analysis of Speaking</h6>
+        <img src='/static/client/img/Screenshot 2021-08-17 142816.png'>
         <div id="sigma-parent">
             <div id="sigma-example">
             </div>
-            <img src='/static/client/img/Screenshot 2021-08-05 130936.png'>
         </div>
-    </div>
-    <div id="">
-        <h6>Meeting Overview</h6>
-        <p>Overall, this meeting was average. Mentor spoke 2x more than other participants; this is normal. This meeting
-            had
-            60% participation, which is lower than average. This meeting had an average silence duration of 6.5s, which
-            is
-            longer than usual.</p>
-    </div>
-    <div id="">
-        <h6>Team Prescription</h6>
-        <p>Speaker A never broke the silence. Speaker B spoke over Speaker C 11 times. Speaker B and Speaker D had the
-            fewest interactions. Speaker A spoke to Speaker B 28 times, but Speaker B only spoke to Speaker A 3 times.
-        </p>
+        <p>Edge Density: {{ edge_density }}</p>
     </div>
 </div>
 
@@ -92,6 +86,7 @@
 
 {% block javascript %}
 <script>
+    // functions
     function getColors(length) {
         let pallet = ["#3e95cd", "#8e5ea2", "#3cba9f", "#e8c3b9", "#c45850", "#C4DE68", "#FFFF99", "#FFA347", "#D770B4", "#5951CD"];
         let colors = [];
@@ -102,6 +97,22 @@
 
         return colors;
     }
+
+    function getAverage(array) {
+        let length = array.length;
+        let total = 0;
+
+        for (let i = 0; i < length; i++) {
+            total += array[i];
+        }
+
+        console.log('success!');
+        console.log(total / length);
+
+        return total / length;
+    }
+
+    // pie chart
 
     const dist_data = {{ distribution[1]| tojson }};
 
@@ -122,27 +133,86 @@
     }
     });
 
+    // vertical bar chart
+
     const inst_data = {{ instances[1]| tojson }};
 
-    new Chart(document.getElementById("bar-chart"), {
+    const options = {
+        plugins: {
+            legend: {
+                display: false,
+            },
+            autocolors: false,
+            annotation: {
+                annotations: {
+                    line1: {
+                        type: 'line',
+                        yMin: getAverage(inst_data),
+                        yMax: getAverage(inst_data),
+                        borderColor: 'rgb(0, 0, 0)',
+                        borderWidth: 2,
+                        borderDash: [10, 10]
+                    }
+                }
+            }
+        }
+    };
+
+    const config = {
         type: 'bar',
         data: {
             labels: {{ instances[0]| tojson }},
-        datasets: [
-        {
-            data: inst_data,
-            backgroundColor: getColors(inst_data.length),
-        }
-    ]
+    datasets: [{
+        data: inst_data,
+        backgroundColor: getColors(inst_data.length),
+    }]
+        },
+    options
+    };
+
+    new Chart(document.getElementById("bar-chart"), config);
+
+    // horizontal bar chart
+
+    const dur_data = {{ durations[1]| tojson }};
+
+    new Chart(document.getElementById("bar-chart2"), {
+        type: 'bar',
+        data: {
+            labels: {{ durations[0]| tojson }},
+        datasets: [{
+            data: dur_data,
+            backgroundColor: getColors(dur_data.length),
+            indexAxis: 'y',
+        }]
         },
         options: {
-        legend: { display: false },
-        title: {
-            display: true,
-            text: 'Speech Instances'
+        plugins: {
+            legend: {
+                display: false,
+            },
+            autocolors: false,
+            annotation: {
+                annotations: {
+                    line2: {
+                        type: 'line',
+                        mode: 'vertical',
+                        xMin: getAverage(dur_data),
+                        xMax: getAverage(dur_data),
+                        borderColor: 'rgb(0, 0, 0)',
+                        borderWidth: 2,
+                        borderDash: [10, 10]
+                    }
+                }
+            }
         }
     }
-    });
+    }
+    );
+
+
+
+    // SigmaJS chart
 
     var g = {
         nodes: [],

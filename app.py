@@ -6,6 +6,7 @@ import requests
 from flask import Flask, render_template, request, session, redirect, url_for, json, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import asc
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
 from wtforms import StringField, PasswordField, BooleanField, DateField
@@ -22,6 +23,7 @@ import json
 import random
 from copy import deepcopy
 config = dotenv_values(".env")
+
 
 # PRODUCTION #
 CLIENT_ID = os.environ.get('CLIENT_ID')
@@ -784,6 +786,7 @@ def silence_breaking(transcript_list):
             breaks[participant]["avg-break"] = average
             continue
         average = sum(times_list, timedelta()) / len(times_list)
+        average -= timedelta(microseconds=average.microseconds)
         breaks[participant]["avg-break"] = average
 
     return breaks
@@ -883,8 +886,6 @@ def get_graph(transcript_list, participants):
             # adds previously silent speaker to adacency mat this time if never spoken to before
             if next_speaker not in ad_mat[curr_speaker]:
                 # initialize one turn and the edge
-                if curr_speaker != next_speaker:
-                    edge_tot += 1
                 ad_mat[curr_speaker][next_speaker] = 1
             else:
                 # add one edge degree
@@ -920,7 +921,7 @@ def get_graph(transcript_list, participants):
             #g.add_edge(participant, ad_mat.keys[0] , weight=None)
     # modify ad_mat for later reference in graph_to_json
     ad_mat_copy = deepcopy(ad_mat)
-    # Address ailiasing  
+    # Address aliasing  
     for speaker1 in ad_mat_copy.keys():
         for speaker2 in ad_mat_copy[speaker1].keys():
             if speaker2 == "index":
@@ -956,12 +957,10 @@ def get_graph(transcript_list, participants):
                             ad_mat[speaker1][key] = ad_mat[alias][key]
                     del ad_mat[alias]
                         
-    # edge_density = edge_tot/(len(participants)*(len(participants)-1))
-    edge_density = 0
-    # centr_degree = edge_tot
+
     centr_degree = 0
 
-    return ad_mat, ad_list, g, edge_density, centr_degree
+    return ad_mat, ad_list, g, centr_degree
 
 def strength(g, ad_mat):
     """
@@ -988,11 +987,14 @@ def strength(g, ad_mat):
 def graph_to_json(ad_mat, degree_mat):
     """
     Creates a json object for the SigmaJS network graph using computed values from get_graph and
-    writes it to the network.json local file
+    writes it to the network.json local file. Additionally, calculates edge density from number of edges and nodes.
 
     Inputs:
         ad_mat -- a dictionary representing the graph's adjacency matrix
         degree_matrix -- a dictionary representing the graph's degree matrix 
+
+    Outputs:
+        edge_density -- a float representing the graph's edge density
     """
     nodes = []
     edges = []
@@ -1012,13 +1014,16 @@ def graph_to_json(ad_mat, degree_mat):
                 edges.append(edge_vals)
         except KeyError:
             continue
-    
+
+    edge_total = len(edges)
+    edge_density = edge_total / ((len(nodes)*(len(nodes)-1)) + len(nodes))
+
     # overwrites network.json file each time analysis is done
     fh = open("static/client/json/network.json", "w")
     fh.write(json.dumps({"nodes": nodes, "edges": edges}))
     fh.close()
 
-    return 
+    return edge_density
 
 
 # FLASK GLOBALS #
@@ -1137,7 +1142,6 @@ def submit():
     form = MeetingSubForm()
 
     if form.validate_on_submit():
-        print('success :)')
         meeting_id = form.meetid.data
         recipient_email = form.recipient.data
         startdate = form.date.data
@@ -1149,7 +1153,6 @@ def submit():
 
         # removes whitespace if present
         meeting_id = meeting_id.replace(" ", "")
-        print("Meeting ID: " + meeting_id)
 
         try:
             startdate = datetime.strptime(startdate, '%m/%d/%y').date()
@@ -1183,7 +1186,6 @@ def submit():
 
         # retrieves info from sub_meetings for current_user
         meetings_dict = host_retrieve()
-        print(meetings_dict)
 
         return render_template("submit.html", form=form, refreshed=False, new_sub=True, meetings=meetings_dict)
 
@@ -1193,23 +1195,14 @@ def submit():
             if session['auth_code'] == auth_code:
                 access_token = session['access_token']
                 r_token = session['r_token']
-                print("prev tokens retrieved")
             else:
                 session['auth_code'] = auth_code
                 access_token, r_token = get_access_token(auth_code)
-                print("fresh tokens retrieved")
         except:
             session['auth_code'] = auth_code
             access_token, r_token = get_access_token(auth_code)
-            print("fresh tokens retrieved")
     except:
-        print('no code or tokens, redirecting')
         return redirect(OAUTH)
-
-    print("Authorization code: " + auth_code)
-    
-    print("Access token: " + access_token)
-    print("Refresh token: " + r_token)
 
     session['a_token'] = access_token
     session['r_token'] = r_token
@@ -1226,7 +1219,6 @@ def refresh():
     if request.method =="POST":
         host_refresh()
         meetings_dict = host_retrieve()
-        print("success!")
         return render_template("submit.html", form=form, refreshed=True, meetings=meetings_dict)
 
     try:
@@ -1235,23 +1227,14 @@ def refresh():
             if session['auth_code'] == auth_code:
                 access_token = session['access_token']
                 r_token = session['r_token']
-                print("prev tokens retrieved")
             else:
                 session['auth_code'] = auth_code
                 access_token, r_token = get_access_token(auth_code)
-                print("fresh tokens retrieved")
         except:
             session['auth_code'] = auth_code
             access_token, r_token = get_access_token(auth_code)
-            print("fresh tokens retrieved")
     except:
-        print('no code or tokens, redirecting')
         return redirect(OAUTH)
-
-    print("Authorization code: " + auth_code)
-    
-    print("Access token: " + access_token)
-    print("Refresh token: " + r_token)
 
     session['a_token'] = access_token
     session['r_token'] = r_token
@@ -1266,14 +1249,12 @@ def refresh():
 def dashboard():
     if current_user.role == "Instructor" or current_user.role == "Admin":
         meetings_dict = instructor_retrieve()
-        print(meetings_dict)
 
         if request.method == 'POST':
             uuids = request.form.getlist('checkbox')
             if len(uuids) == 0:
                 return render_template("dashboard.html", meetings=meetings_dict, error="no-meet")
             if 'analyze' in request.form:
-                print(uuids)
 
                 master_t_list = []
                 participants = []
@@ -1289,7 +1270,7 @@ def dashboard():
 
                     # print(t_list)
                     for idx, t in enumerate(t_list):
-                        p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).all()
+                        p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).order_by(asc(Transcript_Block.sequence)).all()
                         # print(p_t_list)
                         t_list[idx] = p_t_list
                     master_t_list.extend(t_list)
@@ -1300,7 +1281,7 @@ def dashboard():
                 a_dict["speech_instances"] = speech_instances(master_t_list, participants)
                 a_dict["silence_breaking"] = silence_breaking(master_t_list)
                 a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list, participants)
-                a_dict["adjacency_mat"], a_dict["adjacency_lst"], a_dict["network_graph"], a_dict["edge_density"], a_dict["center_deg"]  = get_graph(master_t_list, participants)
+                a_dict["adjacency_mat"], a_dict["adjacency_lst"], a_dict["network_graph"], a_dict["center_deg"]  = get_graph(master_t_list, participants)
 
                 distribution_labels = a_dict["speech_distribution"].keys()
                 distribution_values = a_dict["speech_distribution"].values()
@@ -1313,24 +1294,17 @@ def dashboard():
 
                 instances = [list(instance_labels), list(instance_values)]
 
+                duration_labels = a_dict["speech_durations"].keys()
+                duration_values = [x.total_seconds() for x in a_dict["speech_durations"].values()]
+
+                durations = [list(duration_labels), duration_values]
+
                 degree_mat = strength(a_dict["network_graph"], a_dict["adjacency_mat"])
-                graph_to_json(a_dict["adjacency_mat"], degree_mat)
+                edge_density = graph_to_json(a_dict["adjacency_mat"], degree_mat)
 
-                print(speech_instances(master_t_list, participants))
-                # print(silence_breaking(master_t_list))
-                # print(speech_durations(master_t_list, participants))
-                # print(speech_durations(master_t_list, participants))
-
-                """
-                if 'download-checked':
-                    html = render_template('analysis.html', name=name)
-                    return render_pdf(HTML(string=html))
-                """
-
-                return render_template("analysis.html", analysis=a_dict, distribution=distribution, instances=instances)
+                return render_template("analysis.html", analysis=a_dict, distribution=distribution, instances=instances, durations=durations, edge_density=edge_density)
 
             elif 'download' in request.form:
-                print(uuids)
 
                 id_list = []
 
@@ -1340,22 +1314,15 @@ def dashboard():
                     for t in t_list:
                         id_list.append(t.id)
 
-                print(id_list)
-
                 filenames = []
 
                 for t_id in id_list:
                     filenames.append(transcript_write_to_file(t_id))
 
-                print(filenames)
-
                 with zipfile.ZipFile('static/client/zip/transcripts.zip','w', zipfile.ZIP_DEFLATED) as zf: 
                     for file in filenames:
-                        print('starting...')
-                        print(file)
                         zf.write(file, basename(file))
 
-                print('success')
                 return send_file('static/client/zip/transcripts.zip', as_attachment=True)
 
 

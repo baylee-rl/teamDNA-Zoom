@@ -25,25 +25,43 @@ p {
   width: 1400px;
   height: 500px;
   position: relative;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }    
 
 #sigma-example {
   position: absolute;
-  width: 100%;
+  width: 100% !important;
   height: 100%;
-  border: 1px solid black;
+  border: 1px solid gray;
 }
 
 img {
-  position: absolute;
-  width: 15%;
-  right: 20%;
-  bottom: -183%;
-  margin-left: -3vw;
+  width: 50%;
 }
 
 .sigma-scene, .sigma-labels, .sigma-mouse {
   left: 0;
+}
+
+table {
+  font-family: "Open Sans", sans-serif;
+  border-collapse: collapse;
+  width: 75%;
+  margin-top: 5vh;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px solid #ddd;
+  table-layout: fixed;
+}
+
+  
+td, th {
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  padding: 8px;
+}
+
+
+tr:nth-child(even) {
+  background-color: #eee;
 }
