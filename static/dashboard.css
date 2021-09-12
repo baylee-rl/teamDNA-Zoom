@@ -104,10 +104,10 @@ input#analyze {
     display: block;
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: -2vh;
 }
 
 input#download {
-    margin-top: -0.5vh;
     display: block;
     margin-left: auto;
     margin-right: auto;

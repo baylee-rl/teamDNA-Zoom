@@ -22,6 +22,7 @@ import igraph
 import json
 import random
 from copy import deepcopy
+import csv
 config = dotenv_values(".env")
 
 
@@ -34,13 +35,6 @@ OAUTH = "https://zoom.us/oauth/authorize?response_type=code&client_id=" + CLIENT
 uri = os.environ.get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = uri.replace("postgres://", "postgresql://", 1)
 
-
-# to-do:
-# check if hash meeting works
-# check database if hash is in there
-# bug test everything again bc database got reset
-# check participants everywhere
-# if no meeting selected, dont submit (0 division error)
 
 
 app = Flask(__name__)
@@ -300,7 +294,6 @@ def refresh_token():
     session['r_token'] = new_r_token
 
     return new_access_token, new_r_token
-
 
 # retrieval
 
@@ -606,6 +599,94 @@ def transcript_write_to_file(transcript_id):
         file.write(transcript)
 
     return filepath
+
+def create_data_csv(uuids):
+    """  
+    """
+    header = ["Meeting Name", "Meeting ID", "Speaker", "Start Time", "End Time"]
+    data = []
+    master_t_list = []
+    participants = []
+    for uuid in uuids:
+        curr_meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
+        curr_meeting = Meeting.query.filter_by(id=curr_meeting_inst.meeting_id).first()
+
+        topic = curr_meeting.topic
+        meeting_id = curr_meeting.id
+
+        t_list = Transcript.query.filter_by(uuid=uuid).all()
+        p_list = curr_meeting_inst.participants
+
+        for participant in p_list:
+            if participant.name not in participants:
+                participants.append(participant.name)
+
+        for idx, t in enumerate(t_list):
+            p_t_list = Transcript_Block.query.filter_by(transcript_id=t.id).order_by(asc(Transcript_Block.sequence)).all()
+            t_list[idx] = p_t_list
+
+        master_t_list.extend(t_list)
+
+        for t in t_list:
+            for block in t:
+                new_row = []
+                new_row.append(topic)
+                new_row.append(meeting_id)
+                new_row.append(block.speaker)
+                new_row.append(block.starttime)
+                new_row.append(block.endtime)
+                data.append(new_row)
+        
+    with open('static/client/csv/speaking_turn_data.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header)
+
+        # write multiple rows
+        writer.writerows(data)
+
+    # write the second file
+
+    a_dict = {}
+    a_dict["speech_instances"] = speech_instances(master_t_list, participants)
+    a_dict["silence_breaking"] = silence_breaking(master_t_list)
+    a_dict["speech_durations"], a_dict["speech_distribution"] = speech_durations(master_t_list, participants)
+    
+    header2 = ["Speaker", "Speaking Instances", "Speaking Duration (seconds)", "Proportion of Speaking Time", "Silence Breaks", "Silence Starts", "Average Break", "2.5 to 5s Breaks", "5 to 7.5s Breaks", "7.5 to 10s Breaks", "10s+ Breaks"]
+    data2 = []
+    for participant in participants:
+        new_row = []
+        new_row.append(participant)
+        new_row.append(a_dict["speech_instances"][participant])
+        new_row.append(a_dict["speech_durations"][participant].total_seconds())
+        new_row.append(a_dict["speech_distribution"][participant])
+        
+        try:
+            for value in a_dict["silence_breaking"][participant].keys():
+                if value == "times":
+                    continue
+                elif value == "avg-break" and type(a_dict["silence_breaking"][participant][value]) != int:
+                    new_row.append(a_dict["silence_breaking"][participant][value].total_seconds())
+                else:
+                    new_row.append(a_dict["silence_breaking"][participant][value])
+        except:
+            vals = ["Silence Breaks", "Silence Starts", "Average Break", "2.5 to 5s Breaks", "5 to 7.5s Breaks", "7.5 to 10s Breaks", "10s+ Breaks"]
+            for val in vals:
+                new_row.append(0)
+
+        data2.append(new_row)
+
+    with open('static/client/csv/speaking_summary_data.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+
+        # write the header
+        writer.writerow(header2)
+
+        # write multiple rows
+        writer.writerows(data2)
+    
+    return
 
 # parsing
 
@@ -1305,25 +1386,13 @@ def dashboard():
                 return render_template("analysis.html", analysis=a_dict, distribution=distribution, instances=instances, durations=durations, edge_density=edge_density)
 
             elif 'download' in request.form:
+                create_data_csv(uuids)
 
-                id_list = []
+                with zipfile.ZipFile('static/client/zip/speaking_data.zip','w', zipfile.ZIP_DEFLATED) as zf: 
+                    zf.write('static/client/csv/speaking_turn_data.csv', basename('static/client/csv/speaking_turn_data.csv'))
+                    zf.write('static/client/csv/speaking_summary_data.csv', basename('static/client/csv/speaking_summary_data.csv'))
 
-                for uuid in uuids:
-                    meeting_inst = Meeting_Inst.query.filter_by(uuid=uuid).first()
-                    t_list = meeting_inst.transcripts
-                    for t in t_list:
-                        id_list.append(t.id)
-
-                filenames = []
-
-                for t_id in id_list:
-                    filenames.append(transcript_write_to_file(t_id))
-
-                with zipfile.ZipFile('static/client/zip/transcripts.zip','w', zipfile.ZIP_DEFLATED) as zf: 
-                    for file in filenames:
-                        zf.write(file, basename(file))
-
-                return send_file('static/client/zip/transcripts.zip', as_attachment=True)
+                return send_file('static/client/zip/speaking_data.zip', as_attachment=True)
 
 
         return render_template("dashboard.html", meetings=meetings_dict)

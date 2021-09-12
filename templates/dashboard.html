@@ -36,6 +36,7 @@
         <p class="intro">Check the boxes for all meetings you would like to analyze.
         </p>
         <input type="submit" id="analyze" value="Analyze" name="analyze" style="margin-top: 4vh;">
+        <input type="submit" id="download" value="Download Data as CSV" name="download" style="margin-top: 4vh;">
         {% if error == 'no-meet' %}<small>Please select a meeting.</small>{% endif %}
         {% for meeting in meetings: %}
         <div class="meeting-group" id="{{ meeting }}">
