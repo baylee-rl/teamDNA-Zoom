@@ -603,7 +603,7 @@ def transcript_write_to_file(transcript_id):
 def create_data_csv(uuids):
     """  
     """
-    header = ["Meeting Name", "Meeting ID", "Speaker", "Start Time", "End Time"]
+    header = ["Meeting Name", "Meeting ID", "Meeting Date", "Speaker", "Start Time", "End Time"]
     data = []
     master_t_list = []
     participants = []
@@ -632,6 +632,7 @@ def create_data_csv(uuids):
                 new_row = []
                 new_row.append(topic)
                 new_row.append(meeting_id)
+                new_row.append(curr_meeting_inst.start_time)
                 new_row.append(block.speaker)
                 new_row.append(block.starttime)
                 new_row.append(block.endtime)
